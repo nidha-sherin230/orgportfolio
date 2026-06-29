@@ -1,0 +1,509 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Budget Tracker</title>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg:        #0D1B2A;
+    --surface:   #1C2E42;
+    --surface2:  #243547;
+    --border:    #2A3F55;
+    --text:      #F0F4F8;
+    --muted:     #7A96B0;
+    --green:     #2DD4A0;
+    --green-dim: rgba(45,212,160,.12);
+    --red:       #FF5C6B;
+    --red-dim:   rgba(255,92,107,.12);
+    --amber:     #F5A623;
+    --radius:    12px;
+    --radius-sm: 8px;
+  }
+
+  body {
+    font-family: 'Space Grotesk', sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+    padding: 24px 16px 60px;
+  }
+
+  .container {
+    max-width: 520px;
+    margin: 0 auto;
+  }
+
+  /* ── Header ── */
+  header {
+    text-align: center;
+    padding: 36px 0 28px;
+  }
+  header .label {
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: .18em;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin-bottom: 10px;
+  }
+  .balance-display {
+    font-size: clamp(48px, 12vw, 72px);
+    font-weight: 700;
+    line-height: 1;
+    letter-spacing: -2px;
+    transition: color .3s;
+  }
+  .balance-display.positive { color: var(--green); }
+  .balance-display.negative { color: var(--red); }
+  .balance-display.zero    { color: var(--amber); }
+
+  /* ── Summary pills ── */
+  .summary {
+    display: flex;
+    gap: 12px;
+    margin: 24px 0 32px;
+  }
+  .pill {
+    flex: 1;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 16px;
+  }
+  .pill .pill-label {
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: .12em;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin-bottom: 6px;
+  }
+  .pill .pill-amount {
+    font-size: 22px;
+    font-weight: 700;
+  }
+  .pill.income .pill-amount { color: var(--green); }
+  .pill.expense .pill-amount { color: var(--red); }
+
+  /* ── Form card ── */
+  .form-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 24px;
+    margin-bottom: 28px;
+  }
+  .form-card h2 {
+    font-size: 14px;
+    font-weight: 600;
+    letter-spacing: .06em;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin-bottom: 18px;
+  }
+
+  .field { margin-bottom: 14px; }
+  .field label {
+    display: block;
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--muted);
+    letter-spacing: .08em;
+    text-transform: uppercase;
+    margin-bottom: 6px;
+  }
+  .field input {
+    width: 100%;
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    padding: 12px 14px;
+    font-family: inherit;
+    font-size: 15px;
+    color: var(--text);
+    outline: none;
+    transition: border-color .2s;
+  }
+  .field input:focus { border-color: var(--amber); }
+  .field input::placeholder { color: var(--muted); }
+
+  /* Toggle */
+  .toggle-wrap {
+    display: flex;
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    padding: 4px;
+    margin-bottom: 18px;
+    gap: 4px;
+  }
+  .toggle-btn {
+    flex: 1;
+    border: none;
+    background: transparent;
+    font-family: inherit;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    padding: 10px;
+    border-radius: 6px;
+    color: var(--muted);
+    transition: background .2s, color .2s;
+  }
+  .toggle-btn.active-income {
+    background: var(--green-dim);
+    color: var(--green);
+  }
+  .toggle-btn.active-expense {
+    background: var(--red-dim);
+    color: var(--red);
+  }
+
+  /* Add button */
+  .btn-add {
+    width: 100%;
+    padding: 14px;
+    border: none;
+    border-radius: var(--radius-sm);
+    font-family: inherit;
+    font-size: 15px;
+    font-weight: 700;
+    cursor: pointer;
+    letter-spacing: .04em;
+    transition: opacity .2s, transform .1s;
+  }
+  .btn-add:hover { opacity: .9; }
+  .btn-add:active { transform: scale(.98); }
+  .btn-add.income  { background: var(--green); color: #000; }
+  .btn-add.expense { background: var(--red);   color: #fff; }
+
+  /* ── Entry list ── */
+  .list-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 14px;
+  }
+  .list-header h2 {
+    font-size: 14px;
+    font-weight: 600;
+    letter-spacing: .06em;
+    text-transform: uppercase;
+    color: var(--muted);
+  }
+  .btn-clear {
+    background: none;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 5px 12px;
+    font-family: inherit;
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--muted);
+    cursor: pointer;
+    transition: border-color .2s, color .2s;
+  }
+  .btn-clear:hover { border-color: var(--red); color: var(--red); }
+
+  .empty-state {
+    text-align: center;
+    padding: 48px 24px;
+    color: var(--muted);
+    font-size: 14px;
+    border: 1px dashed var(--border);
+    border-radius: var(--radius);
+  }
+  .empty-state .icon { font-size: 32px; margin-bottom: 12px; }
+
+  .entry-list { display: flex; flex-direction: column; gap: 8px; }
+
+  .entry {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    padding: 14px 16px;
+    border-left-width: 3px;
+    animation: slide-in .2s ease;
+  }
+  @keyframes slide-in {
+    from { opacity: 0; transform: translateY(-6px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+  .entry.income  { border-left-color: var(--green); }
+  .entry.expense { border-left-color: var(--red); }
+
+  .entry-icon {
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 15px;
+    flex-shrink: 0;
+  }
+  .entry.income  .entry-icon { background: var(--green-dim); }
+  .entry.expense .entry-icon { background: var(--red-dim); }
+
+  .entry-info { flex: 1; min-width: 0; }
+  .entry-name {
+    font-size: 14px;
+    font-weight: 600;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .entry-date {
+    font-size: 11px;
+    color: var(--muted);
+    margin-top: 2px;
+  }
+  .entry-amount {
+    font-size: 16px;
+    font-weight: 700;
+    flex-shrink: 0;
+  }
+  .entry.income  .entry-amount { color: var(--green); }
+  .entry.expense .entry-amount { color: var(--red); }
+
+  .btn-delete {
+    background: none;
+    border: none;
+    color: var(--muted);
+    cursor: pointer;
+    font-size: 16px;
+    padding: 4px;
+    border-radius: 4px;
+    line-height: 1;
+    transition: color .2s;
+    flex-shrink: 0;
+  }
+  .btn-delete:hover { color: var(--red); }
+
+  /* Toast */
+  .toast {
+    position: fixed;
+    bottom: 28px;
+    left: 50%;
+    transform: translateX(-50%) translateY(80px);
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 50px;
+    padding: 10px 22px;
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--text);
+    white-space: nowrap;
+    transition: transform .3s cubic-bezier(.34,1.56,.64,1);
+    z-index: 99;
+    pointer-events: none;
+  }
+  .toast.show { transform: translateX(-50%) translateY(0); }
+</style>
+</head>
+<body>
+<div class="container">
+
+  <!-- Header / Balance -->
+  <header>
+    <p class="label">Current Balance</p>
+    <div class="balance-display zero" id="balance">₹0.00</div>
+  </header>
+
+  <!-- Income / Expense pills -->
+  <div class="summary">
+    <div class="pill income">
+      <div class="pill-label">Income</div>
+      <div class="pill-amount" id="total-income">₹0.00</div>
+    </div>
+    <div class="pill expense">
+      <div class="pill-label">Expenses</div>
+      <div class="pill-amount" id="total-expense">₹0.00</div>
+    </div>
+  </div>
+
+  <!-- Add Entry Form -->
+  <div class="form-card">
+    <h2>Add Entry</h2>
+
+    <div class="toggle-wrap">
+      <button class="toggle-btn active-income" id="btn-income" onclick="setType('income')">＋ Income</button>
+      <button class="toggle-btn" id="btn-expense" onclick="setType('expense')">− Expense</button>
+    </div>
+
+    <div class="field">
+      <label for="entry-name">Description</label>
+      <input type="text" id="entry-name" placeholder="e.g. Freelance payment, Groceries…" maxlength="60" />
+    </div>
+    <div class="field">
+      <label for="entry-amount">Amount (₹)</label>
+      <input type="number" id="entry-amount" placeholder="0.00" min="0.01" step="0.01" />
+    </div>
+
+    <button class="btn-add income" id="btn-add" onclick="addEntry()">Add Income</button>
+  </div>
+
+  <!-- Entry List -->
+  <div class="list-header">
+    <h2>Transactions</h2>
+    <button class="btn-clear" onclick="clearAll()">Clear All</button>
+  </div>
+
+  <div id="entry-list"></div>
+
+</div>
+
+<!-- Toast -->
+<div class="toast" id="toast"></div>
+
+<script>
+  const STORAGE_KEY = 'budget_tracker_entries';
+  let entries = [];
+  let currentType = 'income';
+
+  /* ── Boot ── */
+  function init() {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    entries = raw ? JSON.parse(raw) : [];
+    render();
+  }
+
+  /* ── Persist ── */
+  function save() {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(entries));
+  }
+
+  /* ── Type toggle ── */
+  function setType(type) {
+    currentType = type;
+    const btnIncome  = document.getElementById('btn-income');
+    const btnExpense = document.getElementById('btn-expense');
+    const btnAdd     = document.getElementById('btn-add');
+
+    btnIncome.className  = 'toggle-btn' + (type === 'income'  ? ' active-income'  : '');
+    btnExpense.className = 'toggle-btn' + (type === 'expense' ? ' active-expense' : '');
+
+    btnAdd.className = 'btn-add ' + type;
+    btnAdd.textContent = type === 'income' ? 'Add Income' : 'Add Expense';
+  }
+
+  /* ── Add ── */
+  function addEntry() {
+    const nameEl   = document.getElementById('entry-name');
+    const amountEl = document.getElementById('entry-amount');
+    const name     = nameEl.value.trim();
+    const amount   = parseFloat(amountEl.value);
+
+    if (!name)         { showToast('Please enter a description.'); nameEl.focus(); return; }
+    if (!amount || amount <= 0) { showToast('Please enter a valid amount.'); amountEl.focus(); return; }
+
+    entries.unshift({
+      id:     Date.now(),
+      name,
+      amount,
+      type:   currentType,
+      date:   new Date().toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })
+    });
+
+    save();
+    render();
+    nameEl.value   = '';
+    amountEl.value = '';
+    nameEl.focus();
+    showToast(currentType === 'income' ? '✓ Income added' : '✓ Expense added');
+  }
+
+  /* ── Delete ── */
+  function deleteEntry(id) {
+    entries = entries.filter(e => e.id !== id);
+    save();
+    render();
+  }
+
+  /* ── Clear all ── */
+  function clearAll() {
+    if (!entries.length) return;
+    if (!confirm('Remove all transactions? This cannot be undone.')) return;
+    entries = [];
+    save();
+    render();
+    showToast('All transactions cleared.');
+  }
+
+  /* ── Format currency ── */
+  function fmt(n) {
+    return '₹' + Math.abs(n).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  }
+
+  /* ── Render ── */
+  function render() {
+    const totalIncome  = entries.filter(e => e.type === 'income').reduce((s, e) => s + e.amount, 0);
+    const totalExpense = entries.filter(e => e.type === 'expense').reduce((s, e) => s + e.amount, 0);
+    const balance      = totalIncome - totalExpense;
+
+    /* balance display */
+    const balEl = document.getElementById('balance');
+    balEl.textContent = (balance < 0 ? '−' : '') + fmt(balance);
+    balEl.className = 'balance-display ' + (balance > 0 ? 'positive' : balance < 0 ? 'negative' : 'zero');
+
+    document.getElementById('total-income').textContent  = fmt(totalIncome);
+    document.getElementById('total-expense').textContent = fmt(totalExpense);
+
+    /* list */
+    const listEl = document.getElementById('entry-list');
+    if (!entries.length) {
+      listEl.innerHTML = `
+        <div class="empty-state">
+          <div class="icon">💳</div>
+          No transactions yet. Add your first entry above.
+        </div>`;
+      return;
+    }
+
+    listEl.innerHTML = `<div class="entry-list">${
+      entries.map(e => `
+        <div class="entry ${e.type}">
+          <div class="entry-icon">${e.type === 'income' ? '↑' : '↓'}</div>
+          <div class="entry-info">
+            <div class="entry-name">${escHtml(e.name)}</div>
+            <div class="entry-date">${e.date}</div>
+          </div>
+          <div class="entry-amount">${e.type === 'expense' ? '−' : '+'}${fmt(e.amount)}</div>
+          <button class="btn-delete" onclick="deleteEntry(${e.id})" title="Delete">✕</button>
+        </div>
+      `).join('')
+    }</div>`;
+  }
+
+  function escHtml(str) {
+    return str.replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+  }
+
+  /* ── Toast ── */
+  let toastTimer;
+  function showToast(msg) {
+    const t = document.getElementById('toast');
+    t.textContent = msg;
+    t.classList.add('show');
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(() => t.classList.remove('show'), 2200);
+  }
+
+  /* ── Enter key shortcut ── */
+  document.addEventListener('keydown', e => {
+    if (e.key === 'Enter' && (e.target.id === 'entry-name' || e.target.id === 'entry-amount')) {
+      addEntry();
+    }
+  });
+
+  init();
+</script>
+</body>
+</html>

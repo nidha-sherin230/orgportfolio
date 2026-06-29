@@ -1,0 +1,415 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>CareSync | Modern Medicine Tracker & Reminder</title>
+  
+  <!-- Google Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Outfit:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  
+  <!-- Font Awesome Icons -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  
+  <!-- Custom Stylesheet -->
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+  <!-- Sticky Top Navbar -->
+  <nav class="sticky-nav">
+    <div class="nav-container">
+      <div class="nav-brand">
+        <div class="brand-icon">
+          <i class="fa-solid fa-heart-pulse"></i>
+        </div>
+        <span class="brand-name">CareSync</span>
+      </div>
+      
+      <div class="nav-actions">
+        <!-- Profile Selector -->
+        <div class="profile-container">
+          <button id="profileBtn" class="nav-btn profile-trigger">
+            <i class="fa-solid fa-circle-user"></i>
+            <span id="currentProfileName">Guest</span>
+            <i class="fa-solid fa-chevron-down"></i>
+          </button>
+          <div id="profileDropdown" class="profile-dropdown glass-card hidden">
+            <div class="dropdown-header">Switch Profile</div>
+            <ul id="profileList" class="profile-list">
+              <!-- Dynamically populated -->
+            </ul>
+            <div class="dropdown-footer">
+              <button id="addNewProfileBtn" class="text-btn">
+                <i class="fa-solid fa-plus"></i> Add Profile
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Dark Mode Toggle -->
+        <button id="themeToggle" class="nav-btn theme-toggle-btn" aria-label="Toggle Dark Mode">
+          <i class="fa-solid fa-moon"></i>
+        </button>
+      </div>
+    </div>
+  </nav>
+
+  <!-- Main Container -->
+  <main class="main-content">
+    
+    <!-- Hero / Greeting Section -->
+    <header class="hero-section">
+      <div class="hero-text">
+        <h1 id="userGreeting">Good Day, User</h1>
+        <p id="heroSubtitle">Keep your health synced. Here's your schedule for today.</p>
+      </div>
+      
+      <!-- Progress Widget -->
+      <div class="progress-widget glass-card">
+        <div class="progress-info">
+          <div class="progress-text">
+            <h3>Today's Completion</h3>
+            <p id="progressFraction">0 of 0 taken</p>
+          </div>
+          <span class="progress-percentage" id="progressPercentage">0%</span>
+        </div>
+        <div class="progress-bar-container">
+          <div class="progress-bar-fill" id="progressBarFill" style="width: 0%"></div>
+        </div>
+      </div>
+    </header>
+
+    <!-- Stats Grid -->
+    <section class="stats-grid">
+      <div class="stat-card glass-card blue-glow">
+        <div class="stat-icon"><i class="fa-solid fa-capsules"></i></div>
+        <div class="stat-details">
+          <h3 id="statTotalMeds">0</h3>
+          <p>Total Medicines</p>
+        </div>
+      </div>
+      <div class="stat-card glass-card purple-glow">
+        <div class="stat-icon"><i class="fa-solid fa-calendar-day"></i></div>
+        <div class="stat-details">
+          <h3 id="statTodayMeds">0</h3>
+          <p>Scheduled Today</p>
+        </div>
+      </div>
+      <div class="stat-card glass-card green-glow">
+        <div class="stat-icon"><i class="fa-solid fa-circle-check"></i></div>
+        <div class="stat-details">
+          <h3 id="statTakenToday">0</h3>
+          <p>Taken Today</p>
+        </div>
+      </div>
+      <div class="stat-card glass-card red-glow">
+        <div class="stat-icon"><i class="fa-solid fa-circle-xmark"></i></div>
+        <div class="stat-details">
+          <h3 id="statMissedToday">0</h3>
+          <p>Missed Today</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- Content Workspace Layout -->
+    <div class="workspace-layout">
+      
+      <!-- Left Column: Timeline, Search, Filters -->
+      <section class="workspace-main glass-card">
+        <div class="section-header">
+          <div class="header-left">
+            <h2>Medication Schedule</h2>
+            <p class="subtitle" id="timelineDateHeader">Today's Reminders</p>
+          </div>
+          <button id="addMedicineBtn" class="btn btn-primary">
+            <i class="fa-solid fa-plus"></i> Add Medicine
+          </button>
+        </div>
+
+        <!-- Search and Filters Bar -->
+        <div class="controls-bar">
+          <div class="search-box">
+            <i class="fa-solid fa-magnifying-glass"></i>
+            <input type="text" id="searchInput" placeholder="Search medicines by name...">
+          </div>
+          <div class="filter-tabs">
+            <button class="filter-tab active" data-filter="today">Today</button>
+            <button class="filter-tab" data-filter="upcoming">Upcoming</button>
+            <button class="filter-tab" data-filter="taken">Taken</button>
+            <button class="filter-tab" data-filter="missed">Missed</button>
+            <button class="filter-tab" data-filter="all">All</button>
+          </div>
+        </div>
+
+        <!-- Schedule Timeline Content -->
+        <div id="timelineContainer" class="timeline-container">
+          <!-- Dynamic Content Loads Here -->
+        </div>
+      </section>
+
+      <!-- Right Column: Calendar & Stock Tracker -->
+      <aside class="workspace-sidebar">
+        
+        <!-- Calendar Section -->
+        <div class="glass-card sidebar-widget">
+          <div class="widget-header">
+            <h3><i class="fa-regular fa-calendar-days"></i> Health Calendar</h3>
+            <div class="calendar-nav">
+              <button id="prevMonth" aria-label="Previous Month"><i class="fa-solid fa-chevron-left"></i></button>
+              <span id="calendarMonthYear">June 2026</span>
+              <button id="nextMonth" aria-label="Next Month"><i class="fa-solid fa-chevron-right"></i></button>
+            </div>
+          </div>
+          
+          <div class="calendar-container">
+            <div class="calendar-weekdays">
+              <span>Su</span><span>Mo</span><span>Tu</span><span>We</span><span>Th</span><span>Fr</span><span>Sa</span>
+            </div>
+            <div id="calendarDays" class="calendar-days">
+              <!-- Dynamically Populated Days -->
+            </div>
+          </div>
+          <div class="calendar-legend">
+            <span class="legend-item"><span class="legend-dot active"></span>Scheduled</span>
+            <span class="legend-item"><span class="legend-dot selected"></span>Selected</span>
+          </div>
+        </div>
+
+        <!-- Stock Tracker Section -->
+        <div class="glass-card sidebar-widget">
+          <div class="widget-header">
+            <h3><i class="fa-solid fa-boxes-stacked"></i> Stock Tracker</h3>
+            <button id="refillStockBtn" class="text-btn">Manage Stock</button>
+          </div>
+          <div id="stockListContainer" class="stock-list-container">
+            <!-- Dynamic Stock Level Indicators -->
+          </div>
+        </div>
+
+        <!-- Voice & Notification Quick Control -->
+        <div class="glass-card sidebar-widget quick-toggles">
+          <div class="widget-header">
+            <h3><i class="fa-solid fa-circle-nodes"></i> Alerts Preferences</h3>
+          </div>
+          <div class="toggle-row">
+            <div class="toggle-info">
+              <span class="toggle-title">System Notifications</span>
+              <span class="toggle-desc" id="notifStatusText">Ask Permission</span>
+            </div>
+            <label class="switch">
+              <input type="checkbox" id="systemNotifToggle">
+              <span class="slider round"></span>
+            </label>
+          </div>
+          <div class="toggle-row">
+            <div class="toggle-info">
+              <span class="toggle-title">Voice Reminder (Text-to-Speech)</span>
+              <span class="toggle-desc">Speaks dosage alert out loud</span>
+            </div>
+            <label class="switch">
+              <input type="checkbox" id="voiceReminderToggle">
+              <span class="slider round"></span>
+            </label>
+          </div>
+        </div>
+
+        <!-- Data Export/Backup Tools -->
+        <div class="glass-card sidebar-widget backup-tools">
+          <div class="widget-header">
+            <h3><i class="fa-solid fa-gears"></i> Tools & Export</h3>
+          </div>
+          <div class="tool-buttons">
+            <button id="exportPdfBtn" class="btn btn-secondary btn-sm">
+              <i class="fa-solid fa-file-pdf"></i> Print Schedule (PDF)
+            </button>
+            <div class="json-actions">
+              <button id="exportJsonBtn" class="btn btn-secondary btn-sm" title="Backup data">
+                <i class="fa-solid fa-download"></i> Export Data
+              </button>
+              <button id="importJsonBtnTrigger" class="btn btn-secondary btn-sm" title="Restore data">
+                <i class="fa-solid fa-upload"></i> Import Data
+              </button>
+              <input type="file" id="importJsonFileInput" accept=".json" class="hidden">
+            </div>
+          </div>
+        </div>
+
+      </aside>
+
+    </div>
+
+  </main>
+
+  <!-- Sticky Footer -->
+  <footer class="main-footer">
+    <div class="footer-content">
+      <p>&copy; 2026 CareSync Medicine Reminder. All data is kept locally on your device for absolute privacy.</p>
+    </div>
+  </footer>
+
+  <!-- ==================== MODALS ==================== -->
+
+  <!-- 1. Add / Edit Medicine Modal -->
+  <div id="medicineModal" class="modal-overlay hidden">
+    <div class="modal-container glass-card">
+      <div class="modal-header">
+        <h2 id="modalTitle">Add New Medicine</h2>
+        <button class="modal-close" data-close-modal="medicineModal">&times;</button>
+      </div>
+      <form id="medicineForm" class="modal-form" novalidate>
+        <input type="hidden" id="medId">
+        
+        <div class="form-row">
+          <div class="form-group flex-2">
+            <label for="medName">Medicine Name <span class="required">*</span></label>
+            <input type="text" id="medName" placeholder="e.g., Aspirin" required>
+            <div class="error-msg" id="errMedName">Medicine name is required.</div>
+          </div>
+          <div class="form-group flex-1">
+            <label for="medType">Medicine Type</label>
+            <select id="medType">
+              <option value="Tablet">Tablet</option>
+              <option value="Capsule">Capsule</option>
+              <option value="Syrup">Syrup</option>
+              <option value="Injection">Injection</option>
+              <option value="Drops">Drops</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="form-row">
+          <div class="form-group">
+            <label for="medDosage">Dosage <span class="required">*</span></label>
+            <input type="text" id="medDosage" placeholder="e.g., 1 pill, 5ml" required>
+            <div class="error-msg" id="errMedDosage">Dosage is required.</div>
+          </div>
+          <div class="form-group">
+            <label for="medTime">Time <span class="required">*</span></label>
+            <input type="time" id="medTime" required>
+            <div class="error-msg" id="errMedTime">Reminder time is required.</div>
+          </div>
+        </div>
+
+        <div class="form-row">
+          <div class="form-group">
+            <label for="medDate">Start Date <span class="required">*</span></label>
+            <input type="date" id="medDate" required>
+            <div class="error-msg" id="errMedDate">Start date is required.</div>
+          </div>
+          <div class="form-group">
+            <label for="medFrequency">Frequency</label>
+            <select id="medFrequency">
+              <option value="Daily">Daily</option>
+              <option value="Weekly">Weekly</option>
+              <option value="Custom">Custom Interval</option>
+            </select>
+          </div>
+        </div>
+
+        <!-- Custom Frequency Section (Conditional) -->
+        <div id="customFreqGroup" class="form-group hidden">
+          <label for="customIntervalDays">Repeat every <span class="required">*</span></label>
+          <div class="input-with-suffix">
+            <input type="number" id="customIntervalDays" min="1" max="365" value="2">
+            <span>days</span>
+          </div>
+          <div class="error-msg" id="errCustomInterval">Must be at least 1 day.</div>
+        </div>
+
+        <!-- Stock Input Section -->
+        <div class="form-section-title">Stock Tracker Options (Optional)</div>
+        <div class="form-row">
+          <div class="form-group">
+            <label for="medCurrentStock">Current Stock</label>
+            <input type="number" id="medCurrentStock" placeholder="e.g., 30" min="0">
+          </div>
+          <div class="form-group">
+            <label for="medStockAlertThreshold">Low-Stock Alert Limit</label>
+            <input type="number" id="medStockAlertThreshold" placeholder="e.g., 5" min="0">
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label for="medNotes">Instructions / Notes</label>
+          <textarea id="medNotes" rows="3" placeholder="Take after food, avoid alcohol, etc."></textarea>
+        </div>
+
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-close-modal="medicineModal">Cancel</button>
+          <button type="submit" class="btn btn-primary">Save Reminder</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- 2. Delete Confirmation Modal -->
+  <div id="deleteConfirmModal" class="modal-overlay hidden">
+    <div class="modal-container glass-card confirm-modal">
+      <div class="modal-header">
+        <h2>Confirm Deletion</h2>
+        <button class="modal-close" data-close-modal="deleteConfirmModal">&times;</button>
+      </div>
+      <div class="modal-body">
+        <p>Are you sure you want to delete <strong id="deleteTargetName">this medicine</strong>?</p>
+        <p class="warning-text"><i class="fa-solid fa-triangle-exclamation"></i> This will delete the reminder and all past completion logs associated with it. This action cannot be undone.</p>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-secondary" data-close-modal="deleteConfirmModal">Cancel</button>
+        <button id="confirmDeleteBtn" class="btn btn-danger">Yes, Delete</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 3. Add Profile Modal -->
+  <div id="profileModal" class="modal-overlay hidden">
+    <div class="modal-container glass-card confirm-modal">
+      <div class="modal-header">
+        <h2>Create Profile</h2>
+        <button class="modal-close" data-close-modal="profileModal">&times;</button>
+      </div>
+      <form id="profileForm" class="modal-form" novalidate>
+        <div class="form-group">
+          <label for="profileName">Profile Name <span class="required">*</span></label>
+          <input type="text" id="profileName" placeholder="e.g., Mom, Dad, Lucy" required>
+          <div class="error-msg" id="errProfileName">Profile name is required.</div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-close-modal="profileModal">Cancel</button>
+          <button type="submit" class="btn btn-primary">Create Profile</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- 4. Refill Stock Modal -->
+  <div id="refillStockModal" class="modal-overlay hidden">
+    <div class="modal-container glass-card">
+      <div class="modal-header">
+        <h2>Manage Stock levels</h2>
+        <button class="modal-close" data-close-modal="refillStockModal">&times;</button>
+      </div>
+      <div class="modal-body">
+        <div id="refillListContainer" class="refill-list-container">
+          <!-- Dynamically generated list of stock inputs for active medicines -->
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-secondary" data-close-modal="refillStockModal">Close</button>
+        <button id="saveRefillBtn" class="btn btn-primary">Save Stock Quantities</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Toasts Notification Container -->
+  <div id="toastContainer" class="toast-container"></div>
+
+  <!-- Audio Alert for fallback system reminders -->
+  <audio id="reminderSound" src="https://assets.mixkit.co/active_storage/sfx/2869/2869-84.wav" preload="auto"></audio>
+
+  <!-- Script Integration -->
+  <script src="script.js"></script>
+</body>
+</html>

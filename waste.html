@@ -1,0 +1,2469 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>EcoClean - Smart Waste Reporting System</title>
+    
+    <!-- Meta tags for SEO -->
+    <meta name="description" content="Report garbage dumps, plastic waste, and illegal dumping to your municipal authority. Track cleanup progress in real-time. Help keep our community clean.">
+    <meta name="keywords" content="waste reporting, civic tech, eco, environment, municipal reports, garbage tracker">
+    
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    
+    <!-- Leaflet.js CSS for Map -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="" />
+    
+    <!-- CSS Custom Properties and Main Styling -->
+    <style>
+        :root {
+            /* Palette: Eco Light Theme */
+            --bg-app: #f4f6f8;
+            --bg-glass: rgba(255, 255, 255, 0.75);
+            --bg-glass-solid: rgba(255, 255, 255, 0.95);
+            --bg-card-hover: rgba(255, 255, 255, 0.9);
+            --border-glass: rgba(226, 232, 240, 0.8);
+            --border-focus: #10b981;
+            
+            --text-main: #1e293b;
+            --text-muted: #64748b;
+            --text-on-primary: #ffffff;
+            
+            --primary: #10b981;
+            --primary-hover: #059669;
+            --primary-light: rgba(16, 185, 129, 0.1);
+            
+            --shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.04);
+            --shadow-md: 0 8px 20px rgba(0, 0, 0, 0.06);
+            --shadow-lg: 0 12px 30px rgba(0, 0, 0, 0.09);
+            
+            --radius-sm: 8px;
+            --radius-md: 16px;
+            --radius-lg: 24px;
+            
+            /* Status Colors */
+            --status-submitted: #3b82f6;
+            --status-submitted-bg: rgba(59, 130, 246, 0.1);
+            --status-review: #f59e0b;
+            --status-review-bg: rgba(245, 158, 11, 0.1);
+            --status-assigned: #8b5cf6;
+            --status-assigned-bg: rgba(139, 92, 246, 0.1);
+            --status-progress: #06b6d4;
+            --status-progress-bg: rgba(6, 182, 212, 0.1);
+            --status-resolved: #10b981;
+            --status-resolved-bg: rgba(16, 185, 129, 0.1);
+            
+            --transition-speed: 0.3s;
+            --font-family: 'Outfit', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+        }
+        [data-theme="dark"] {
+            /* Palette: Eco Dark Theme */
+            --bg-app: #0b0f19;
+            --bg-glass: rgba(15, 23, 42, 0.65);
+            --bg-glass-solid: rgba(15, 23, 42, 0.9);
+            --bg-card-hover: rgba(30, 41, 59, 0.7);
+            --border-glass: rgba(255, 255, 255, 0.08);
+            --border-focus: #34d399;
+            
+            --text-main: #f1f5f9;
+            --text-muted: #94a3b8;
+            --text-on-primary: #061912;
+            
+            --primary: #34d399;
+            --primary-hover: #10b981;
+            --primary-light: rgba(52, 211, 153, 0.15);
+            
+            --shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.3);
+            --shadow-md: 0 8px 24px rgba(0, 0, 0, 0.4);
+            --shadow-lg: 0 16px 40px rgba(0, 0, 0, 0.5);
+            
+            /* Dark Status Colors */
+            --status-submitted: #60a5fa;
+            --status-submitted-bg: rgba(96, 165, 250, 0.15);
+            --status-review: #fbbf24;
+            --status-review-bg: rgba(251, 191, 36, 0.15);
+            --status-assigned: #a78bfa;
+            --status-assigned-bg: rgba(167, 139, 250, 0.15);
+            --status-progress: #22d3ee;
+            --status-progress-bg: rgba(34, 211, 238, 0.15);
+            --status-resolved: #34d399;
+            --status-resolved-bg: rgba(52, 211, 153, 0.15);
+        }
+        /* Basic Resets & Styling */
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: var(--font-family);
+            scrollbar-width: thin;
+            scrollbar-color: var(--primary) var(--border-glass);
+        }
+        /* Scrollbar Styling */
+        ::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
+        }
+        ::-webkit-scrollbar-track {
+            background: transparent;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: var(--border-glass);
+            border-radius: var(--radius-sm);
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: var(--primary);
+        }
+        body {
+            background-color: var(--bg-app);
+            color: var(--text-main);
+            transition: background-color var(--transition-speed), color var(--transition-speed);
+            line-height: 1.5;
+            padding-bottom: 3rem;
+            min-height: 100vh;
+        }
+        /* Utilities */
+        .glass-card {
+            background: var(--bg-glass);
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+            border: 1px solid var(--border-glass);
+            border-radius: var(--radius-md);
+            box-shadow: var(--shadow-md);
+            transition: transform var(--transition-speed), box-shadow var(--transition-speed), background var(--transition-speed);
+            overflow: hidden;
+        }
+        .glass-card:hover {
+            box-shadow: var(--shadow-lg);
+        }
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 0 1.5rem;
+        }
+        /* Header & Navigation */
+        header {
+            position: sticky;
+            top: 0;
+            z-index: 1000;
+            background: var(--bg-glass-solid);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border-bottom: 1px solid var(--border-glass);
+            padding: 1rem 0;
+            margin-bottom: 1.5rem;
+            transition: background var(--transition-speed), border var(--transition-speed);
+        }
+        .nav-wrapper {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .logo {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            font-size: 1.5rem;
+            font-weight: 800;
+            color: var(--primary);
+            text-decoration: none;
+            transition: transform 0.2s ease;
+        }
+        .logo:hover {
+            transform: scale(1.02);
+        }
+        .logo svg {
+            width: 32px;
+            height: 32px;
+            fill: var(--primary);
+        }
+        .nav-controls {
+            display: flex;
+            align-items: center;
+            gap: 1.5rem;
+        }
+        /* Toggle Button styling */
+        .btn-icon {
+            background: var(--border-glass);
+            border: 1px solid var(--border-glass);
+            color: var(--text-main);
+            width: 42px;
+            height: 42px;
+            border-radius: 50%;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: background var(--transition-speed), color var(--transition-speed), transform 0.2s;
+        }
+        .btn-icon:hover {
+            background: var(--primary-light);
+            color: var(--primary);
+            transform: scale(1.05);
+        }
+        .btn-icon svg {
+            width: 20px;
+            height: 20px;
+        }
+        .nav-link {
+            text-decoration: none;
+            color: var(--text-muted);
+            font-weight: 500;
+            transition: color var(--transition-speed);
+        }
+        .nav-link:hover, .nav-link.active {
+            color: var(--primary);
+        }
+        /* Banner */
+        .awareness-banner {
+            margin-bottom: 1.5rem;
+            border-left: 5px solid var(--primary);
+            position: relative;
+            cursor: pointer;
+        }
+        .banner-content {
+            padding: 1.25rem 2rem;
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            justify-content: space-between;
+        }
+        .banner-text {
+            font-size: 0.95rem;
+            font-weight: 500;
+        }
+        .banner-tips-list {
+            list-style: none;
+            height: 24px;
+            overflow: hidden;
+            position: relative;
+            width: 100%;
+        }
+        .banner-tip-item {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            opacity: 0;
+            transition: transform 0.5s ease, opacity 0.5s ease;
+            transform: translateY(20px);
+        }
+        .banner-tip-item.active {
+            opacity: 1;
+            transform: translateY(0);
+            position: relative;
+        }
+        /* Dashboard Overview Grid */
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 1.5rem;
+            margin-bottom: 2rem;
+        }
+        .stat-card {
+            display: flex;
+            align-items: center;
+            padding: 1.5rem;
+            gap: 1.25rem;
+        }
+        .stat-icon {
+            width: 56px;
+            height: 56px;
+            border-radius: var(--radius-md);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: var(--text-on-primary);
+            font-weight: 700;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.15);
+        }
+        .stat-icon.total {
+            background: linear-gradient(135deg, #3b82f6, #1d4ed8);
+        }
+        .stat-icon.resolved {
+            background: linear-gradient(135deg, #10b981, #047857);
+        }
+        .stat-icon.pending {
+            background: linear-gradient(135deg, #f59e0b, #b45309);
+        }
+        .stat-info {
+            display: flex;
+            flex-direction: column;
+        }
+        .stat-value {
+            font-size: 2rem;
+            font-weight: 800;
+            line-height: 1.1;
+        }
+        .stat-label {
+            font-size: 0.85rem;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            font-weight: 600;
+            margin-top: 0.25rem;
+        }
+        /* Two-Column App Layout */
+        .app-layout {
+            display: grid;
+            grid-template-columns: 1.1fr 0.9fr;
+            gap: 2rem;
+            align-items: start;
+        }
+        @media (max-width: 1024px) {
+            .app-layout {
+                grid-template-columns: 1fr;
+            }
+        }
+        /* Submission Form Card */
+        .form-section {
+            padding: 2rem;
+        }
+        .form-section h2, .details-section h2, .history-section h2 {
+            font-size: 1.5rem;
+            font-weight: 700;
+            margin-bottom: 1.5rem;
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+        }
+        .form-section h2 svg, .details-section h2 svg, .history-section h2 svg {
+            color: var(--primary);
+            width: 24px;
+            height: 24px;
+        }
+        .form-group {
+            margin-bottom: 1.5rem;
+        }
+        .form-label {
+            display: block;
+            font-size: 0.9rem;
+            font-weight: 600;
+            color: var(--text-main);
+            margin-bottom: 0.5rem;
+        }
+        /* Category Card Radio Selector */
+        .category-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+            gap: 0.75rem;
+        }
+        .category-card {
+            border: 2px solid var(--border-glass);
+            background: transparent;
+            padding: 1rem 0.5rem;
+            border-radius: var(--radius-md);
+            text-align: center;
+            cursor: pointer;
+            transition: all var(--transition-speed) ease;
+            position: relative;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 0.5rem;
+        }
+        .category-card input[type="radio"] {
+            position: absolute;
+            opacity: 0;
+            width: 0;
+            height: 0;
+        }
+        .category-card svg {
+            width: 32px;
+            height: 32px;
+            color: var(--text-muted);
+            transition: color var(--transition-speed);
+        }
+        .category-name {
+            font-size: 0.8rem;
+            font-weight: 600;
+            color: var(--text-muted);
+        }
+        .category-card:hover {
+            border-color: var(--primary);
+            background: var(--primary-light);
+            transform: translateY(-2px);
+        }
+        .category-card.selected {
+            border-color: var(--primary);
+            background: var(--primary-light);
+            box-shadow: 0 0 0 1px var(--primary);
+        }
+        .category-card.selected svg {
+            color: var(--primary);
+        }
+        .category-card.selected .category-name {
+            color: var(--primary);
+        }
+        /* Image Drag & Drop Uploader */
+        .image-uploader {
+            border: 2px dashed var(--border-glass);
+            border-radius: var(--radius-md);
+            padding: 1.5rem;
+            text-align: center;
+            cursor: pointer;
+            transition: border-color var(--transition-speed), background-color var(--transition-speed);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 0.75rem;
+            position: relative;
+        }
+        .image-uploader:hover, .image-uploader.dragover {
+            border-color: var(--primary);
+            background: var(--primary-light);
+        }
+        .image-uploader svg {
+            width: 44px;
+            height: 44px;
+            color: var(--text-muted);
+        }
+        .image-uploader-text {
+            font-size: 0.85rem;
+            color: var(--text-muted);
+        }
+        .image-uploader-text span {
+            color: var(--primary);
+            font-weight: 600;
+        }
+        .image-preview-wrapper {
+            position: relative;
+            width: 100%;
+            max-height: 250px;
+            border-radius: var(--radius-md);
+            overflow: hidden;
+            display: none;
+            box-shadow: var(--shadow-sm);
+        }
+        .image-preview-wrapper img {
+            width: 100%;
+            height: 250px;
+            object-fit: cover;
+        }
+        .btn-remove-image {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            background: rgba(15, 23, 42, 0.8);
+            border: none;
+            color: white;
+            border-radius: 50%;
+            width: 32px;
+            height: 32px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: background var(--transition-speed);
+        }
+        .btn-remove-image:hover {
+            background: rgba(239, 68, 68, 0.9);
+        }
+        /* Inputs and Form Controls */
+        .form-input, .form-textarea {
+            width: 100%;
+            background: var(--bg-app);
+            border: 1px solid var(--border-glass);
+            border-radius: var(--radius-md);
+            padding: 0.75rem 1rem;
+            font-size: 0.95rem;
+            color: var(--text-main);
+            outline: none;
+            transition: border-color var(--transition-speed), box-shadow var(--transition-speed), background-color var(--transition-speed);
+        }
+        .form-input:focus, .form-textarea:focus {
+            border-color: var(--border-focus);
+            box-shadow: 0 0 0 3px var(--primary-light);
+            background: var(--bg-glass-solid);
+        }
+        .location-coordinates-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            font-size: 0.8rem;
+            font-weight: 600;
+            background: var(--border-glass);
+            padding: 0.25rem 0.75rem;
+            border-radius: var(--radius-sm);
+            margin-top: 0.5rem;
+            color: var(--text-muted);
+        }
+        .location-action-bar {
+            display: flex;
+            gap: 0.75rem;
+            margin-top: 0.5rem;
+        }
+        .btn-small {
+            padding: 0.5rem 1rem;
+            border-radius: var(--radius-sm);
+            font-size: 0.8rem;
+            font-weight: 600;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 0.4rem;
+            border: 1px solid var(--border-glass);
+            background: var(--bg-glass);
+            color: var(--text-main);
+            transition: all var(--transition-speed);
+        }
+        .btn-small:hover {
+            background: var(--border-glass);
+            border-color: var(--text-muted);
+        }
+        .btn-primary-small {
+            background: var(--primary-light);
+            color: var(--primary);
+            border-color: transparent;
+        }
+        .btn-primary-small:hover {
+            background: var(--primary);
+            color: var(--text-on-primary);
+        }
+        .btn-submit {
+            width: 100%;
+            background: var(--primary);
+            color: var(--text-on-primary);
+            border: none;
+            border-radius: var(--radius-md);
+            padding: 1rem;
+            font-size: 1rem;
+            font-weight: 700;
+            cursor: pointer;
+            transition: background var(--transition-speed), transform 0.1s, box-shadow var(--transition-speed);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.5rem;
+            box-shadow: 0 4px 14px rgba(16, 185, 129, 0.4);
+        }
+        .btn-submit:hover {
+            background: var(--primary-hover);
+            transform: translateY(-1px);
+            box-shadow: 0 6px 20px rgba(16, 185, 129, 0.5);
+        }
+        .btn-submit:active {
+            transform: translateY(1px);
+        }
+        /* Map Card */
+        .map-section {
+            padding: 1.5rem;
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+        }
+        .map-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .map-instruction {
+            font-size: 0.8rem;
+            color: var(--text-muted);
+            display: flex;
+            align-items: center;
+            gap: 0.25rem;
+        }
+        .map-container-wrapper {
+            position: relative;
+            border-radius: var(--radius-md);
+            border: 1px solid var(--border-glass);
+            overflow: hidden;
+            box-shadow: var(--shadow-sm);
+        }
+        #map {
+            width: 100%;
+            height: 350px;
+            z-index: 1;
+        }
+        /* Map Dark Mode Overlay Filter (Optional backup if tiles fail) */
+        /* [data-theme="dark"] .leaflet-tile-container {
+            filter: invert(100%) hue-rotate(180deg) brightness(95%) contrast(90%);
+        } */
+        /* Leaflet Popups Style Override */
+        .leaflet-popup-content-wrapper {
+            background: var(--bg-glass-solid) !important;
+            color: var(--text-main) !important;
+            border: 1px solid var(--border-glass);
+            border-radius: var(--radius-md) !important;
+            backdrop-filter: blur(8px);
+            font-family: var(--font-family) !important;
+            box-shadow: var(--shadow-md) !important;
+        }
+        .leaflet-popup-tip {
+            background: var(--bg-glass-solid) !important;
+            border-left: 1px solid var(--border-glass);
+            border-bottom: 1px solid var(--border-glass);
+        }
+        .map-popup {
+            max-width: 200px;
+            font-size: 0.85rem;
+        }
+        .map-popup img {
+            width: 100%;
+            height: 90px;
+            object-fit: cover;
+            border-radius: var(--radius-sm);
+            margin-bottom: 0.5rem;
+            border: 1px solid var(--border-glass);
+        }
+        .map-popup h4 {
+            font-weight: 700;
+            color: var(--primary);
+            margin-bottom: 0.25rem;
+        }
+        /* Tracker Widget Card */
+        .tracker-section {
+            padding: 2rem;
+            margin-bottom: 2rem;
+        }
+        .search-bar {
+            display: flex;
+            gap: 0.75rem;
+            margin-bottom: 1.5rem;
+        }
+        .search-input-wrapper {
+            position: relative;
+            flex-grow: 1;
+        }
+        .search-input-wrapper svg {
+            position: absolute;
+            left: 14px;
+            top: 50%;
+            transform: translateY(-50%);
+            color: var(--text-muted);
+            width: 18px;
+            height: 18px;
+        }
+        .search-input {
+            padding-left: 2.75rem;
+        }
+        .btn-search {
+            background: var(--text-main);
+            color: var(--bg-app);
+            border: none;
+            padding: 0 1.5rem;
+            border-radius: var(--radius-md);
+            font-weight: 600;
+            cursor: pointer;
+            transition: opacity var(--transition-speed);
+        }
+        .btn-search:hover {
+            opacity: 0.9;
+        }
+        /* Tracking Result Panel */
+        .tracker-result {
+            display: none;
+            animation: fadeIn 0.4s ease-out forwards;
+        }
+        .tracker-result.active {
+            display: block;
+        }
+        .tracker-header-info {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            flex-wrap: wrap;
+            gap: 1rem;
+            border-bottom: 1px solid var(--border-glass);
+            padding-bottom: 1rem;
+            margin-bottom: 1.5rem;
+        }
+        .tracker-title-id {
+            font-size: 1.25rem;
+            font-weight: 700;
+            margin-bottom: 0.25rem;
+        }
+        .tracker-date {
+            font-size: 0.8rem;
+            color: var(--text-muted);
+        }
+        /* Horizontal/Vertical Steps Timeline */
+        .tracker-timeline {
+            display: flex;
+            justify-content: space-between;
+            position: relative;
+            margin: 2.5rem 0;
+            padding: 0 0.5rem;
+        }
+        .tracker-timeline::before {
+            content: '';
+            position: absolute;
+            top: 15px;
+            left: 0;
+            right: 0;
+            height: 4px;
+            background: var(--border-glass);
+            z-index: 1;
+        }
+        .tracker-progress-line {
+            position: absolute;
+            top: 15px;
+            left: 0;
+            height: 4px;
+            background: var(--primary);
+            z-index: 2;
+            width: 0%;
+            transition: width 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        .timeline-step {
+            position: relative;
+            z-index: 3;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            width: 60px;
+        }
+        .step-node {
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            background: var(--bg-app);
+            border: 3px solid var(--border-glass);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.4s ease;
+            font-weight: 700;
+            font-size: 0.85rem;
+            color: var(--text-muted);
+        }
+        .step-node svg {
+            width: 14px;
+            height: 14px;
+            color: white;
+            display: none;
+        }
+        .step-label {
+            margin-top: 0.75rem;
+            font-size: 0.75rem;
+            font-weight: 700;
+            color: var(--text-muted);
+            text-align: center;
+            white-space: nowrap;
+            transition: color 0.4s;
+        }
+        /* State Classes for Tracker Node */
+        .timeline-step.completed .step-node {
+            background: var(--primary);
+            border-color: var(--primary);
+            color: var(--text-on-primary);
+        }
+        .timeline-step.completed .step-node svg {
+            display: block;
+        }
+        .timeline-step.completed .step-label {
+            color: var(--primary);
+        }
+        .timeline-step.active .step-node {
+            background: var(--bg-app);
+            border-color: var(--primary);
+            color: var(--primary);
+            box-shadow: 0 0 0 4px var(--primary-light);
+            animation: pulse-border 1.5s infinite;
+        }
+        .timeline-step.active .step-label {
+            color: var(--text-main);
+            font-weight: 800;
+        }
+        @keyframes pulse-border {
+            0% { box-shadow: 0 0 0 0 var(--primary-light); }
+            70% { box-shadow: 0 0 0 6px var(--primary-light); }
+            100% { box-shadow: 0 0 0 0 var(--primary-light); }
+        }
+        @media (max-width: 640px) {
+            .tracker-timeline {
+                flex-direction: column;
+                gap: 1.5rem;
+                padding-left: 2rem;
+                margin: 1.5rem 0;
+            }
+            .tracker-timeline::before {
+                top: 0;
+                bottom: 0;
+                left: 15px;
+                width: 4px;
+                height: 100%;
+            }
+            .tracker-progress-line {
+                top: 0;
+                left: 15px;
+                width: 4px;
+                height: 0%;
+                transition: height 0.6s ease;
+            }
+            .timeline-step {
+                flex-direction: row;
+                width: 100%;
+                gap: 1.25rem;
+                justify-content: flex-start;
+            }
+            .step-label {
+                margin-top: 0;
+                text-align: left;
+            }
+        }
+        /* Tracker Detail Panel */
+        .tracker-info-box {
+            display: grid;
+            grid-template-columns: 100px 1fr;
+            gap: 1.5rem;
+            background: var(--bg-app);
+            padding: 1.25rem;
+            border-radius: var(--radius-md);
+            border: 1px solid var(--border-glass);
+            margin-top: 1rem;
+        }
+        .tracker-info-img {
+            width: 100px;
+            height: 100px;
+            object-fit: cover;
+            border-radius: var(--radius-sm);
+            border: 1px solid var(--border-glass);
+        }
+        .tracker-info-details {
+            display: flex;
+            flex-direction: column;
+            gap: 0.4rem;
+        }
+        .tracker-info-row {
+            font-size: 0.85rem;
+        }
+        .tracker-info-row strong {
+            color: var(--text-muted);
+            display: inline-block;
+            width: 80px;
+        }
+        /* Empty state tracker display */
+        .tracker-empty {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 3rem 1.5rem;
+            text-align: center;
+            color: var(--text-muted);
+        }
+        .tracker-empty svg {
+            width: 50px;
+            height: 50px;
+            margin-bottom: 1rem;
+            color: var(--border-glass);
+        }
+        /* Badge Styles */
+        .badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.35rem;
+            padding: 0.3rem 0.75rem;
+            border-radius: 50px;
+            font-size: 0.75rem;
+            font-weight: 700;
+            text-transform: capitalize;
+        }
+        .badge-status {
+            color: var(--status-color);
+            background: var(--status-bg);
+        }
+        .badge-status.submitted {
+            --status-color: var(--status-submitted);
+            --status-bg: var(--status-submitted-bg);
+        }
+        .badge-status.under-review {
+            --status-color: var(--status-review);
+            --status-bg: var(--status-review-bg);
+        }
+        .badge-status.assigned {
+            --status-color: var(--status-assigned);
+            --status-bg: var(--status-assigned-bg);
+        }
+        .badge-status.in-progress {
+            --status-color: var(--status-progress);
+            --status-bg: var(--status-progress-bg);
+        }
+        .badge-status.resolved {
+            --status-color: var(--status-resolved);
+            --status-bg: var(--status-resolved-bg);
+        }
+        .badge-category {
+            background: var(--border-glass);
+            color: var(--text-muted);
+        }
+        /* History Section */
+        .history-section {
+            margin-top: 2.5rem;
+            padding: 2rem;
+        }
+        .history-filters {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: space-between;
+            align-items: center;
+            gap: 1rem;
+            margin-bottom: 1.5rem;
+            padding-bottom: 1rem;
+            border-bottom: 1px solid var(--border-glass);
+        }
+        .filter-buttons {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.5rem;
+        }
+        .btn-filter {
+            background: var(--bg-app);
+            border: 1px solid var(--border-glass);
+            padding: 0.4rem 1rem;
+            border-radius: 50px;
+            font-size: 0.8rem;
+            font-weight: 600;
+            color: var(--text-muted);
+            cursor: pointer;
+            transition: all var(--transition-speed);
+        }
+        .btn-filter:hover {
+            border-color: var(--primary);
+            color: var(--text-main);
+        }
+        .btn-filter.active {
+            background: var(--primary);
+            color: var(--text-on-primary);
+            border-color: var(--primary);
+            box-shadow: 0 2px 8px rgba(16, 185, 129, 0.3);
+        }
+        .search-history-input {
+            padding: 0.4rem 1rem;
+            font-size: 0.8rem;
+            max-width: 220px;
+        }
+        /* Grid View of Reports */
+        .reports-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+            gap: 1.5rem;
+        }
+        .report-card {
+            border-radius: var(--radius-md);
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+            background: var(--bg-glass);
+            border: 1px solid var(--border-glass);
+            transition: transform var(--transition-speed), box-shadow var(--transition-speed);
+        }
+        .report-card:hover {
+            transform: translateY(-4px);
+            box-shadow: var(--shadow-lg);
+            background: var(--bg-card-hover);
+        }
+        .report-card-img-wrapper {
+            position: relative;
+            width: 100%;
+            height: 180px;
+            background: var(--border-glass);
+        }
+        .report-card-img-wrapper img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+        .report-card-badges {
+            position: absolute;
+            top: 12px;
+            left: 12px;
+            right: 12px;
+            display: flex;
+            justify-content: space-between;
+            pointer-events: none;
+        }
+        .report-card-body {
+            padding: 1.25rem;
+            display: flex;
+            flex-direction: column;
+            gap: 0.75rem;
+            flex-grow: 1;
+        }
+        .report-card-id {
+            font-size: 0.8rem;
+            font-weight: 700;
+            color: var(--primary);
+            letter-spacing: 0.05em;
+        }
+        .report-card-desc {
+            font-size: 0.9rem;
+            font-weight: 400;
+            color: var(--text-main);
+            display: -webkit-box;
+            -webkit-line-clamp: 2;
+            -webkit-box-orient: vertical;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            height: 2.7em;
+            line-height: 1.35;
+        }
+        .report-card-loc {
+            font-size: 0.8rem;
+            color: var(--text-muted);
+            display: flex;
+            align-items: center;
+            gap: 0.4rem;
+        }
+        .report-card-loc svg {
+            width: 14px;
+            height: 14px;
+            flex-shrink: 0;
+        }
+        .report-card-footer {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-top: 1px solid var(--border-glass);
+            padding-top: 1rem;
+            margin-top: auto;
+        }
+        .report-card-date {
+            font-size: 0.75rem;
+            color: var(--text-muted);
+        }
+        .report-card-actions {
+            display: flex;
+            gap: 0.5rem;
+        }
+        .btn-track {
+            background: var(--primary-light);
+            color: var(--primary);
+            border: 1px solid transparent;
+            padding: 0.35rem 0.85rem;
+            border-radius: var(--radius-sm);
+            font-size: 0.75rem;
+            font-weight: 700;
+            cursor: pointer;
+            transition: all var(--transition-speed);
+        }
+        .btn-track:hover {
+            background: var(--primary);
+            color: var(--text-on-primary);
+        }
+        /* Simulation Progress Admin Controls */
+        .simulation-select {
+            background: var(--bg-app);
+            border: 1px solid var(--border-glass);
+            border-radius: var(--radius-sm);
+            font-size: 0.75rem;
+            padding: 0.25rem 0.5rem;
+            color: var(--text-main);
+            cursor: pointer;
+            outline: none;
+        }
+        .simulation-select:focus {
+            border-color: var(--primary);
+        }
+        /* Toast System */
+        .toast-container {
+            position: fixed;
+            bottom: 24px;
+            right: 24px;
+            z-index: 9999;
+            display: flex;
+            flex-direction: column;
+            gap: 0.75rem;
+        }
+        .toast {
+            min-width: 300px;
+            background: var(--bg-glass-solid);
+            backdrop-filter: blur(12px);
+            border: 1px solid var(--border-glass);
+            padding: 1rem 1.25rem;
+            border-radius: var(--radius-md);
+            box-shadow: var(--shadow-lg);
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            animation: slideIn 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+            position: relative;
+            overflow: hidden;
+        }
+        .toast::after {
+            content: '';
+            position: absolute;
+            left: 0;
+            bottom: 0;
+            height: 3px;
+            width: 100%;
+            background: var(--toast-color);
+            animation: progress-bar 4s linear forwards;
+        }
+        .toast-icon {
+            width: 24px;
+            height: 24px;
+            color: var(--toast-color);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .toast-content {
+            flex-grow: 1;
+        }
+        .toast-title {
+            font-weight: 700;
+            font-size: 0.85rem;
+            margin-bottom: 0.1rem;
+        }
+        .toast-desc {
+            font-size: 0.75rem;
+            color: var(--text-muted);
+        }
+        .toast-close {
+            background: transparent;
+            border: none;
+            color: var(--text-muted);
+            cursor: pointer;
+        }
+        .toast.success { --toast-color: var(--primary); }
+        .toast.error { --toast-color: #ef4444; }
+        .toast.info { --toast-color: #3b82f6; }
+        @keyframes slideIn {
+            from { transform: translateX(100%) translateY(0); opacity: 0; }
+            to { transform: translateX(0) translateY(0); opacity: 1; }
+        }
+        @keyframes progress-bar {
+            from { width: 100%; }
+            to { width: 0%; }
+        }
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        /* Footer */
+        footer {
+            margin-top: 4rem;
+            text-align: center;
+            padding: 2rem 0;
+            color: var(--text-muted);
+            font-size: 0.85rem;
+            border-top: 1px solid var(--border-glass);
+        }
+        footer strong {
+            color: var(--primary);
+        }
+        /* Loading Spinner */
+        .spinner {
+            animation: rotate 2s linear infinite;
+            width: 20px;
+            height: 20px;
+            display: none;
+        }
+        .spinner .path {
+            stroke: currentColor;
+            stroke-linecap: round;
+            animation: dash 1.5s ease-in-out infinite;
+        }
+        @keyframes rotate {
+            100% { transform: rotate(360deg); }
+        }
+        @keyframes dash {
+            0% { stroke-dasharray: 1, 150; stroke-dashoffset: 0; }
+            50% { stroke-dasharray: 90, 150; stroke-dashoffset: -35; }
+            100% { stroke-dasharray: 90, 150; stroke-dashoffset: -124; }
+        }
+    </style>
+</head>
+<body>
+    <!-- Header / Navigation -->
+    <header>
+        <div class="container nav-wrapper">
+            <a href="#" class="logo" id="logo" aria-label="EcoClean Home">
+                <!-- Inline SVG Leaf Logo -->
+                <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                    <path d="M12 2C6.48 2 2 6.48 2 12c0 4.42 2.87 8.17 6.84 9.47.1.02.16-.06.16-.1v-.77c0-.28-.15-.55-.38-.72-2.14-1.57-3.62-4.04-3.62-6.88 0-4.41 3.59-8 8-8s8 3.59 8 8c0 2.84-1.48 5.31-3.62 6.88-.23.17-.38.44-.38.72v.77c0 .04.06.12.16.1C19.13 20.17 22 16.42 22 12c0-5.52-4.48-10-10-10zm0 18c-3.31 0-6-2.69-6-6 0-1.88.87-3.56 2.23-4.67.14-.11.23-.27.23-.45V7.5c0-.28.22-.5.5-.5h6.54c.28 0 .5.22.5.5v1.38c0 .18.09.34.23.45C17.13 10.44 18 12.12 18 14c0 3.31-2.69 6-6 6zm-1.5-7.5c0-.28.22-.5.5-.5h2c.28 0 .5.22.5.5s-.22.5-.5.5h-2c-.28 0-.5-.22-.5-.5z"/>
+                </svg>
+                <span>EcoClean</span>
+            </a>
+            <div class="nav-controls">
+                <a href="#recent-history" class="nav-link">Reports History</a>
+                <!-- Theme toggle button -->
+                <button class="btn-icon" id="theme-toggle" aria-label="Toggle dark mode" title="Toggle dark mode">
+                    <!-- Sun Icon (default in dark mode) -->
+                    <svg id="theme-icon-sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display: none;">
+                        <circle cx="12" cy="12" r="4"></circle>
+                        <path d="M12 2v2"></path>
+                        <path d="M12 20v2"></path>
+                        <path d="M4.93 4.93l1.41 1.41"></path>
+                        <path d="M17.66 17.66l1.41 1.41"></path>
+                        <path d="M2 12h2"></path>
+                        <path d="M20 12h2"></path>
+                        <path d="M6.34 17.66l-1.41 1.41"></path>
+                        <path d="M19.07 4.93l-1.41 1.41"></path>
+                    </svg>
+                    <!-- Moon Icon (default in light mode) -->
+                    <svg id="theme-icon-moon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z"></path>
+                    </svg>
+                </button>
+            </div>
+        </div>
+    </header>
+    <main class="container">
+        
+        <!-- Rotating Environmental Awareness Banner -->
+        <div class="glass-card awareness-banner" id="awareness-banner" title="Click for next tip">
+            <div class="banner-content">
+                <div style="display: flex; align-items: center; gap: 0.75rem;">
+                    <!-- Info/Eco Icon -->
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="var(--primary)" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M12 22c5.523 0 10-4.477 10-10S17.523 2 12 2 2 6.477 2 12s4.477 10 10 10z"></path>
+                        <path d="M12 16v-4"></path>
+                        <path d="M12 8h.01"></path>
+                    </svg>
+                    <div class="banner-text">
+                        <ul class="banner-tips-list" id="banner-tips">
+                            <li class="banner-tip-item active"><strong>Did you know?</strong> 1 plastic bottle takes up to 450 years to decompose in a dump site. Recycle properly!</li>
+                            <li class="banner-tip-item"><strong>Community Tip:</strong> Separate organic waste from dry recyclables to reduce landfill methane emissions.</li>
+                            <li class="banner-tip-item"><strong>Civic Duty:</strong> Reporting overflowing bins helps prevent toxic leachate and disease spread in our neighborhoods.</li>
+                            <li class="banner-tip-item"><strong>Reduce Waste:</strong> Carry a reusable bag and steel water bottle. Every single small action counts!</li>
+                        </ul>
+                    </div>
+                </div>
+                <!-- Banner Arrow controls indicator -->
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--text-muted)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M5 12h14"></path>
+                    <path d="m12 5 7 7-7 7"></path>
+                </svg>
+            </div>
+        </div>
+        <!-- Dashboard Stats Overview -->
+        <div class="stats-grid">
+            <!-- Total reports -->
+            <div class="glass-card stat-card">
+                <div class="stat-icon total">
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                        <path d="M14 2v6h6"></path>
+                        <path d="M16 13H8"></path>
+                        <path d="M16 17H8"></path>
+                        <path d="M10 9H8"></path>
+                    </svg>
+                </div>
+                <div class="stat-info">
+                    <span class="stat-value" id="stat-total">0</span>
+                    <span class="stat-label">Total Reports</span>
+                </div>
+            </div>
+            <!-- Resolved Complaints -->
+            <div class="glass-card stat-card">
+                <div class="stat-icon resolved">
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path>
+                        <path d="m22 4-10 10.01-3-3"></path>
+                    </svg>
+                </div>
+                <div class="stat-info">
+                    <span class="stat-value" id="stat-resolved">0</span>
+                    <span class="stat-label">Resolved Cases</span>
+                </div>
+            </div>
+            <!-- Pending Cases -->
+            <div class="glass-card stat-card">
+                <div class="stat-icon pending">
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                        <circle cx="12" cy="12" r="10"></circle>
+                        <path d="M12 6v6l4 2"></path>
+                    </svg>
+                </div>
+                <div class="stat-info">
+                    <span class="stat-value" id="stat-pending">0</span>
+                    <span class="stat-label">Pending Cases</span>
+                </div>
+            </div>
+        </div>
+        <!-- App Main Content Layout -->
+        <div class="app-layout">
+            
+            <!-- Left Side: Form Submission -->
+            <div class="glass-card form-section">
+                <h2>
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
+                        <path d="M18.5 2.5a2.121 2.121 0 1 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
+                    </svg>
+                    File a Municipal Waste Report
+                </h2>
+                <form id="report-form" novalidate>
+                    <!-- Category selection -->
+                    <div class="form-group">
+                        <label class="form-label">Report Category</label>
+                        <div class="category-grid" role="radiogroup" aria-label="Select report category">
+                            <!-- Garbage Dump Card -->
+                            <label class="category-card selected" id="label-garbage">
+                                <input type="radio" name="category" value="Garbage Dump" checked>
+                                <!-- Garbage Dump SVG -->
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                    <path d="M3 6h18"></path>
+                                    <path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"></path>
+                                    <path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"></path>
+                                    <line x1="10" y1="11" x2="10" y2="17"></line>
+                                    <line x1="14" y1="11" x2="14" y2="17"></line>
+                                </svg>
+                                <span class="category-name">Garbage Dump</span>
+                            </label>
+                            <!-- Plastic Waste Card -->
+                            <label class="category-card" id="label-plastic">
+                                <input type="radio" name="category" value="Plastic Waste">
+                                <!-- Bottle SVG -->
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                    <path d="M8.5 2h7"></path>
+                                    <path d="M9.5 2v3a2 2 0 0 0-.5.5l-2 3A4 4 0 0 0 6.5 10v10a2 2 0 0 0 2 2h7a2 2 0 0 0 2-2V10a4 4 0 0 0-.5-1.5l-2-3a2 2 0 0 0-.5-.5V2"></path>
+                                </svg>
+                                <span class="category-name">Plastic Waste</span>
+                            </label>
+                            <!-- Construction Waste Card -->
+                            <label class="category-card" id="label-construction">
+                                <input type="radio" name="category" value="Construction Waste">
+                                <!-- Construction Bricks SVG -->
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                    <rect x="3" y="3" width="18" height="18" rx="2"></rect>
+                                    <path d="M3 9h18"></path>
+                                    <path d="M3 15h18"></path>
+                                    <path d="M9 9v12"></path>
+                                    <path d="M15 3v6"></path>
+                                    <path d="M15 15v6"></path>
+                                    <path d="M9 3v6"></path>
+                                </svg>
+                                <span class="category-name">Construction</span>
+                            </label>
+                            <!-- Illegal Dumping Card -->
+                            <label class="category-card" id="label-illegal">
+                                <input type="radio" name="category" value="Illegal Dumping">
+                                <!-- Caution/Illegal SVG -->
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                    <path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"></path>
+                                    <line x1="12" y1="9" x2="12" y2="13"></line>
+                                    <line x1="12" y1="17" x2="12.01" y2="17"></line>
+                                </svg>
+                                <span class="category-name">Illegal Dumping</span>
+                            </label>
+                            <!-- Overflowing Bin Card -->
+                            <label class="category-card" id="label-overflow">
+                                <input type="radio" name="category" value="Overflowing Bin">
+                                <!-- Overflowing trash / Warning bin SVG -->
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                    <path d="M3 6h18"></path>
+                                    <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"></path>
+                                    <path d="m11 2 2 2H8"></path>
+                                    <path d="M12 9v4"></path>
+                                    <path d="M12 17h.01"></path>
+                                    <path d="M9 3.5a1.5 1.5 0 0 1 3 0"></path>
+                                </svg>
+                                <span class="category-name">Overflowing Bin</span>
+                            </label>
+                        </div>
+                    </div>
+                    <!-- Photo Upload with Preview -->
+                    <div class="form-group">
+                        <label class="form-label">Evidence Upload (Photo of Waste site)</label>
+                        <div class="image-uploader" id="image-dropzone">
+                            <!-- Cloud upload SVG -->
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                                <polyline points="17 8 12 3 7 8"></polyline>
+                                <line x1="12" y1="3" x2="12" y2="15"></line>
+                            </svg>
+                            <div class="image-uploader-text">
+                                <span>Click to upload</span> or drag and drop<br>
+                                <small style="display: block; margin-top: 4px; color: var(--text-muted);">PNG, JPG (compresses automatically)</small>
+                            </div>
+                            <input type="file" id="image-file-input" accept="image/*" style="display: none;">
+                        </div>
+                        <div class="image-preview-wrapper" id="image-preview-container">
+                            <img id="image-preview-img" src="" alt="Waste Site Preview">
+                            <button type="button" class="btn-remove-image" id="btn-clear-image" aria-label="Remove image">
+                                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                                    <line x1="18" y1="6" x2="6" y2="18"></line>
+                                    <line x1="6" y1="6" x2="18" y2="18"></line>
+                                </svg>
+                            </button>
+                        </div>
+                    </div>
+                    <!-- Location input and Geotagging -->
+                    <div class="form-group">
+                        <label class="form-label" for="location-input">Location / Address</label>
+                        <input type="text" class="form-input" id="location-input" placeholder="e.g. Near 452 Elm Street, or click on the map" required>
+                        <div class="location-action-bar">
+                            <button type="button" class="btn-small btn-primary-small" id="btn-gps">
+                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                                    <circle cx="12" cy="12" r="10"></circle>
+                                    <circle cx="12" cy="12" r="3"></circle>
+                                    <line x1="12" y1="1" x2="12" y2="3"></line>
+                                    <line x1="12" y1="21" x2="12" y2="23"></line>
+                                    <line x1="1" y1="12" x2="3" y2="12"></line>
+                                    <line x1="21" y1="12" x2="23" y2="12"></line>
+                                </svg>
+                                Find My Location
+                            </button>
+                            <span class="location-coordinates-badge" id="coordinates-display">
+                                GPS Not Set
+                            </span>
+                        </div>
+                    </div>
+                    <!-- Description notes -->
+                    <div class="form-group">
+                        <label class="form-label" for="desc-input">Additional Description</label>
+                        <textarea class="form-textarea" id="desc-input" rows="3" placeholder="Provide extra details (e.g. blocking traffic, leaking oils, hazardous materials)"></textarea>
+                    </div>
+                    <button type="submit" class="btn-submit" id="btn-submit-report">
+                        <svg class="spinner" viewBox="0 0 50 50">
+                            <circle class="path" cx="25" cy="25" r="20" fill="none" stroke-width="5"></circle>
+                        </svg>
+                        <span>Submit Municipal Report</span>
+                    </button>
+                </form>
+            </div>
+            <!-- Right Side: Map and Tracker -->
+            <div style="display: flex; flex-direction: column; gap: 2rem;">
+                
+                <!-- Leaflet Interactive Map Card -->
+                <div class="glass-card map-section">
+                    <div class="map-header">
+                        <h3 style="font-weight: 700; font-size: 1.15rem; display: flex; align-items: center; gap: 0.5rem;">
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--primary)" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                                <polygon points="3 6 9 3 15 6 21 3 21 18 15 21 9 18 3 21"></polygon>
+                                <line x1="9" y1="3" x2="9" y2="18"></line>
+                                <line x1="15" y1="6" x2="15" y2="21"></line>
+                            </svg>
+                            Interactive Waste Hotspot Map
+                        </h3>
+                        <div class="map-instruction">
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                                <circle cx="12" cy="12" r="10"></circle>
+                                <line x1="12" y1="16" x2="12" y2="12"></line>
+                                <line x1="12" y1="8" x2="12.01" y2="8"></line>
+                            </svg>
+                            Double-click/tap to set Pin
+                        </div>
+                    </div>
+                    <div class="map-container-wrapper">
+                        <div id="map"></div>
+                    </div>
+                </div>
+                <!-- Complaint Status Tracking Widget -->
+                <div class="glass-card tracker-section" id="tracker-widget">
+                    <h2>
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                            <circle cx="11" cy="11" r="8"></circle>
+                            <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+                            <line x1="11" y1="8" x2="11" y2="14"></line>
+                            <line x1="8" y1="11" x2="14" y2="11"></line>
+                        </svg>
+                        Track Municipal Cleanups
+                    </h2>
+                    
+                    <div class="search-bar">
+                        <div class="search-input-wrapper">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <circle cx="11" cy="11" r="8"></circle>
+                                <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+                            </svg>
+                            <input type="text" class="form-input search-input" id="search-id-input" placeholder="Enter Report ID (e.g. WST-2026-3849)" aria-label="Enter Report ID">
+                        </div>
+                        <button type="button" class="btn-search" id="btn-track-search">Search</button>
+                    </div>
+                    <!-- Tracker Result Display -->
+                    <div class="tracker-result" id="tracker-display">
+                        <div class="tracker-header-info">
+                            <div>
+                                <div class="tracker-title-id" id="track-report-id">WST-2026-4829</div>
+                                <div class="tracker-date" id="track-report-date">Filed on Jun 10, 2026 10:12 AM</div>
+                            </div>
+                            <span class="badge badge-status" id="track-report-badge">Submitted</span>
+                        </div>
+                        <!-- Timelines (Horizontal on desktop, vertical on mobile via CSS) -->
+                        <div class="tracker-timeline">
+                            <div class="tracker-progress-line" id="tracker-progress-bar"></div>
+                            
+                            <!-- Steps -->
+                            <div class="timeline-step" data-step="0">
+                                <div class="step-node">
+                                    <span>1</span>
+                                    <!-- Check icon -->
+                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
+                                        <polyline points="20 6 9 17 4 12"></polyline>
+                                    </svg>
+                                </div>
+                                <div class="step-label">Submitted</div>
+                            </div>
+                            <div class="timeline-step" data-step="1">
+                                <div class="step-node">
+                                    <span>2</span>
+                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
+                                        <polyline points="20 6 9 17 4 12"></polyline>
+                                    </svg>
+                                </div>
+                                <div class="step-label">Under Review</div>
+                            </div>
+                            <div class="timeline-step" data-step="2">
+                                <div class="step-node">
+                                    <span>3</span>
+                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
+                                        <polyline points="20 6 9 17 4 12"></polyline>
+                                    </svg>
+                                </div>
+                                <div class="step-label">Assigned</div>
+                            </div>
+                            <div class="timeline-step" data-step="3">
+                                <div class="step-node">
+                                    <span>4</span>
+                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
+                                        <polyline points="20 6 9 17 4 12"></polyline>
+                                    </svg>
+                                </div>
+                                <div class="step-label">In Progress</div>
+                            </div>
+                            <div class="timeline-step" data-step="4">
+                                <div class="step-node">
+                                    <span>5</span>
+                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
+                                        <polyline points="20 6 9 17 4 12"></polyline>
+                                    </svg>
+                                </div>
+                                <div class="step-label">Resolved</div>
+                            </div>
+                        </div>
+                        <!-- Extra Details in Tracker -->
+                        <div class="tracker-info-box">
+                            <img class="tracker-info-img" id="track-report-img" src="" alt="Waste Image Preview">
+                            <div class="tracker-info-details">
+                                <div class="tracker-info-row"><strong>Category:</strong> <span id="track-details-category">Plastic Waste</span></div>
+                                <div class="tracker-info-row"><strong>Location:</strong> <span id="track-details-address">Vancouver, BC</span></div>
+                                <div class="tracker-info-row"><strong>Details:</strong> <span id="track-details-desc">A bunch of bottles.</span></div>
+                            </div>
+                        </div>
+                    </div>
+                    <!-- Tracker Empty State -->
+                    <div class="tracker-empty" id="tracker-empty-state">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+                            <circle cx="12" cy="12" r="10"></circle>
+                            <line x1="12" y1="8" x2="12" y2="12"></line>
+                            <line x1="12" y1="16" x2="12.01" y2="16"></line>
+                        </svg>
+                        <p>Search by Report ID above to track live cleanup status.<br><small style="color:var(--text-muted)">Try tracking one of the reports listed in the history section below!</small></p>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <!-- Recent Reports / History Section -->
+        <div class="glass-card history-section" id="recent-history">
+            <h2>
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M12 8v4l3 3"></path>
+                    <circle cx="12" cy="12" r="10"></circle>
+                </svg>
+                Community Report History
+            </h2>
+            <div class="history-filters">
+                <div class="filter-buttons">
+                    <button class="btn-filter active" data-filter="all">All Reports</button>
+                    <button class="btn-filter" data-filter="pending">Pending Cases</button>
+                    <button class="btn-filter" data-filter="resolved">Resolved</button>
+                    <button class="btn-filter" data-filter="Garbage Dump">Garbage Dump</button>
+                    <button class="btn-filter" data-filter="Plastic Waste">Plastic Waste</button>
+                    <button class="btn-filter" data-filter="Illegal Dumping">Illegal Dumping</button>
+                </div>
+                
+                <input type="text" class="form-input search-history-input" id="history-search-input" placeholder="Search by ID or address..." aria-label="Search reports history">
+            </div>
+            <!-- Reports List Grid -->
+            <div class="reports-grid" id="reports-grid">
+                <!-- Dynamically filled by JavaScript -->
+            </div>
+        </div>
+    </main>
+    <!-- Footer -->
+    <footer>
+        <div class="container">
+            <p><strong>EcoClean</strong> Civic Services Department &copy; 2026. Made with environmental care for clean neighborhoods.</p>
+        </div>
+    </footer>
+    <!-- Toast Notification Container -->
+    <div class="toast-container" id="toast-wrapper"></div>
+    <!-- Leaflet JS Map Script -->
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+    
+    <!-- JavaScript Application Logic -->
+    <script>
+        // --- CONSTANTS & CONFIGURATIONS ---
+        const MOCK_CENTER = [40.7820, -73.9660]; // New York Central Park
+        const MOCK_BOUNDS = [
+            [40.7600, -73.9900], // Southwest
+            [40.8050, -73.9400]  // Northeast
+        ];
+        const STATUSES = ["Submitted", "Under Review", "Assigned", "In Progress", "Resolved"];
+        const CLEANUP_IPS = ["Submitted", "Under Review", "Assigned", "In Progress"];
+        // --- STATE MANAGEMENT ---
+        let appState = {
+            reports: [],
+            selectedCategory: "Garbage Dump",
+            uploadedImageBase64: null,
+            selectedCoords: null,
+            activeFilters: {
+                status: 'all', // 'all', 'pending', 'resolved'
+                category: 'all', // 'all', or specific categories
+                searchQuery: ''
+            },
+            theme: 'light',
+            map: null,
+            mapMarkers: {}, // maps report ID -> leaflet marker
+            tempMarker: null
+        };
+        // --- MOCK IMAGE ILLUSTRATION GENERATOR ---
+        // Generates beautiful stylized vector canvas graphics matching categories to keep it lightweight & self-contained
+        function generateMockWasteImage(category) {
+            const canvas = document.createElement("canvas");
+            canvas.width = 400;
+            canvas.height = 300;
+            const ctx = canvas.getContext("2d");
+            // Gradient backgrounds based on category
+            let gradient = ctx.createLinearGradient(0, 0, 400, 300);
+            if (category === "Garbage Dump") {
+                gradient.addColorStop(0, "#475569");
+                gradient.addColorStop(1, "#1e293b");
+            } else if (category === "Plastic Waste") {
+                gradient.addColorStop(0, "#3b82f6");
+                gradient.addColorStop(1, "#1d4ed8");
+            } else if (category === "Construction Waste") {
+                gradient.addColorStop(0, "#f59e0b");
+                gradient.addColorStop(1, "#b45309");
+            } else if (category === "Illegal Dumping") {
+                gradient.addColorStop(0, "#ef4444");
+                gradient.addColorStop(1, "#991b1b");
+            } else { // Overflowing Bin
+                gradient.addColorStop(0, "#06b6d4");
+                gradient.addColorStop(1, "#0891b2");
+            }
+            ctx.fillStyle = gradient;
+            ctx.fillRect(0, 0, 400, 300);
+            // Draw abstract grid representing outdoor ground
+            ctx.strokeStyle = "rgba(255, 255, 255, 0.1)";
+            ctx.lineWidth = 1;
+            for(let i=0; i<400; i+=40) {
+                ctx.beginPath();
+                ctx.moveTo(i, 0); ctx.lineTo(i, 300);
+                ctx.stroke();
+            }
+            for(let j=0; j<300; j+=40) {
+                ctx.beginPath();
+                ctx.moveTo(0, j); ctx.lineTo(400, j);
+                ctx.stroke();
+            }
+            // Draw illustrative silhouettes
+            ctx.fillStyle = "rgba(255, 255, 255, 0.85)";
+            if (category === "Plastic Waste") {
+                // Draw multiple plastic bottle shapes
+                for(let k=0; k<3; k++) {
+                    ctx.save();
+                    ctx.translate(120 + k*70, 150 + (k%2)*20);
+                    ctx.rotate((k - 1) * 0.3);
+                    // Bottle shape
+                    ctx.beginPath();
+                    ctx.roundRect(-20, -50, 40, 100, 8);
+                    ctx.fill();
+                    // Bottle cap neck
+                    ctx.beginPath();
+                    ctx.rect(-10, -65, 20, 15);
+                    ctx.fill();
+                    ctx.restore();
+                }
+            } else if (category === "Construction Waste") {
+                // Draw bricks stacking up
+                for(let row=0; row<3; row++) {
+                    for(let col=0; col<4-row; col++) {
+                        ctx.fillStyle = "rgba(244, 63, 94, 0.9)";
+                        ctx.beginPath();
+                        ctx.roundRect(100 + col*50 + row*25, 200 - row*35, 45, 30, 4);
+                        ctx.fill();
+                        // brick lines/highlight
+                        ctx.strokeStyle = "rgba(255,255,255,0.4)";
+                        ctx.stroke();
+                    }
+                }
+            } else if (category === "Overflowing Bin") {
+                // Trash can shape
+                ctx.fillStyle = "rgba(241, 245, 249, 0.9)";
+                ctx.beginPath();
+                ctx.moveTo(150, 100);
+                ctx.lineTo(250, 100);
+                ctx.lineTo(230, 240);
+                ctx.lineTo(170, 240);
+                ctx.closePath();
+                ctx.fill();
+                // lid skewed showing overflowing trash
+                ctx.fillStyle = "rgba(203, 213, 225, 0.9)";
+                ctx.save();
+                ctx.translate(200, 95);
+                ctx.rotate(-0.25);
+                ctx.beginPath();
+                ctx.roundRect(-60, -10, 120, 15, 5);
+                ctx.fill();
+                ctx.restore();
+                // Overflow items peaking out
+                ctx.fillStyle = "#fbbf24";
+                ctx.beginPath();
+                ctx.arc(180, 85, 15, 0, Math.PI*2);
+                ctx.arc(210, 80, 18, 0, Math.PI*2);
+                ctx.fill();
+            } else if (category === "Illegal Dumping") {
+                // Warning symbol
+                ctx.fillStyle = "#facc15";
+                ctx.beginPath();
+                ctx.moveTo(200, 70);
+                ctx.lineTo(290, 220);
+                ctx.lineTo(110, 220);
+                ctx.closePath();
+                ctx.fill();
+                // Exclamation inside warning
+                ctx.fillStyle = "#000000";
+                ctx.fillRect(195, 110, 10, 50);
+                ctx.beginPath();
+                ctx.arc(200, 190, 6, 0, Math.PI*2);
+                ctx.fill();
+            } else { // Garbage Dump
+                // Generic pile of trash
+                ctx.fillStyle = "#78716c";
+                ctx.beginPath();
+                ctx.arc(150, 200, 50, 0, Math.PI*2);
+                ctx.arc(200, 180, 65, 0, Math.PI*2);
+                ctx.arc(250, 210, 45, 0, Math.PI*2);
+                ctx.fill();
+                // Draw smaller pieces
+                ctx.fillStyle = "#a8a29e";
+                ctx.beginPath();
+                ctx.arc(180, 130, 20, 0, Math.PI*2);
+                ctx.arc(220, 140, 18, 0, Math.PI*2);
+                ctx.fill();
+            }
+            // Info Label overlay
+            ctx.fillStyle = "rgba(0, 0, 0, 0.4)";
+            ctx.fillRect(0, 250, 400, 50);
+            ctx.fillStyle = "#ffffff";
+            ctx.font = "bold 13px Outfit, sans-serif";
+            ctx.fillText("ECO-PORTAL: REPORT EVIDENCE PHOTO", 20, 280);
+            return canvas.toDataURL("image/jpeg", 0.85);
+        }
+        // --- DATABASE OPERATIONS (LocalStorage) ---
+        function initializeDatabase() {
+            const stored = localStorage.getItem("ecoclean_reports");
+            if (stored) {
+                try {
+                    appState.reports = JSON.parse(stored);
+                } catch (e) {
+                    console.error("Failed to parse local storage, re-initializing mock data.", e);
+                    seedMockData();
+                }
+            } else {
+                seedMockData();
+            }
+            updateStatsDashboard();
+        }
+        function saveDatabase() {
+            localStorage.setItem("ecoclean_reports", JSON.stringify(appState.reports));
+            updateStatsDashboard();
+        }
+        function seedMockData() {
+            appState.reports = [
+                {
+                    id: "WST-2026-4829",
+                    category: "Garbage Dump",
+                    description: "Large pile of rotting organic bags dumped next to the sidewalk near Central Park entrance. Emitting very strong bad odor and attracting pests.",
+                    location: "79th St Transverse, Central Park, NY",
+                    coords: [40.7812, -73.9678],
+                    image: generateMockWasteImage("Garbage Dump"),
+                    date: "Jun 08, 2026 09:30 AM",
+                    status: "Submitted"
+                },
+                {
+                    id: "WST-2026-5912",
+                    category: "Plastic Waste",
+                    description: "Hundreds of discarded single-use plastic bottles scattered around the water reservoir banks. Needs volunteer group or professional municipal cleaning.",
+                    location: "Jacqueline Kennedy Onassis Reservoir, Central Park, NY",
+                    coords: [40.7870, -73.9626],
+                    image: generateMockWasteImage("Plastic Waste"),
+                    date: "Jun 09, 2026 11:15 AM",
+                    status: "Under Review"
+                },
+                {
+                    id: "WST-2026-8832",
+                    category: "Construction Waste",
+                    description: "Concrete bricks, broken wooden scaffolding planks, and tile grout bags left behind near the recreational pathways after construction finished.",
+                    location: "East Meadow Path, Central Park, NY",
+                    coords: [40.7915, -73.9585],
+                    image: generateMockWasteImage("Construction Waste"),
+                    date: "Jun 07, 2026 03:40 PM",
+                    status: "In Progress"
+                },
+                {
+                    id: "WST-2026-1024",
+                    category: "Overflowing Bin",
+                    description: "Dual recycling bins completely packed to the top with cans and paper, with winds scattering loose litter onto grass lawns.",
+                    location: "Sheep Meadow Perimeter, Central Park, NY",
+                    coords: [40.7712, -73.9740],
+                    image: generateMockWasteImage("Overflowing Bin"),
+                    date: "Jun 05, 2026 08:10 AM",
+                    status: "Resolved"
+                }
+            ];
+            saveDatabase();
+        }
+        // --- MAP FUNCTIONS (Leaflet.js) ---
+        function initMap() {
+            // Centering Central Park
+            appState.map = L.map('map', {
+                center: MOCK_CENTER,
+                zoom: 14,
+                zoomControl: true
+            });
+            setMapTiles();
+            // Handle Double click map to drop temporary pinning marker
+            appState.map.on('dblclick', function(e) {
+                setTempMarker(e.latlng);
+            });
+            
+            // Add existing DB markers to map
+            renderMapMarkers();
+        }
+        function setMapTiles() {
+            // Choose light/dark themes
+            const theme = appState.theme;
+            const tileUrl = theme === 'dark' 
+                ? 'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png' 
+                : 'https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png';
+            
+            const attribution = '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>';
+            
+            // Remove previous layers if any
+            appState.map.eachLayer(function(layer) {
+                if (layer instanceof L.TileLayer) {
+                    appState.map.removeLayer(layer);
+                }
+            });
+            L.tileLayer(tileUrl, {
+                attribution: attribution,
+                maxZoom: 19
+            }).addTo(appState.map);
+        }
+        function getMarkerColor(status) {
+            switch(status) {
+                case 'Submitted': return '#3b82f6';
+                case 'Under Review': return '#f59e0b';
+                case 'Assigned': return '#8b5cf6';
+                case 'In Progress': return '#06b6d4';
+                case 'Resolved': return '#10b981';
+                default: return '#64748b';
+            }
+        }
+        // Create customizable marker icons dynamically utilizing color coding
+        function createCustomPin(color) {
+            return L.divIcon({
+                className: 'custom-map-pin',
+                html: `<div style="background-color: ${color}; width: 14px; height: 14px; border-radius: 50%; border: 3px solid #ffffff; box-shadow: 0 0 10px rgba(0,0,0,0.35);"></div>`,
+                iconSize: [20, 20],
+                iconAnchor: [10, 10]
+            });
+        }
+        function setTempMarker(latlng) {
+            appState.selectedCoords = [latlng.lat, latlng.lng];
+            
+            if (appState.tempMarker) {
+                appState.tempMarker.setLatLng(latlng);
+            } else {
+                const draftIcon = L.divIcon({
+                    className: 'temp-map-pin',
+                    html: `<div style="background-color: #ef4444; width: 16px; height: 16px; border-radius: 50%; border: 3px solid #ffffff; box-shadow: 0 0 12px rgba(239,68,68,0.7); animation: pulse-border 1.5s infinite;"></div>`,
+                    iconSize: [22, 22],
+                    iconAnchor: [11, 11]
+                });
+                appState.tempMarker = L.marker(latlng, { icon: draftIcon, draggable: true }).addTo(appState.map);
+                
+                appState.tempMarker.on('dragend', function(e) {
+                    const newPos = appState.tempMarker.getLatLng();
+                    appState.selectedCoords = [newPos.lat, newPos.lng];
+                    updateLocationFromCoords(newPos.lat, newPos.lng);
+                });
+            }
+            // Autofill location address with Simulated reverse geocoding
+            updateLocationFromCoords(latlng.lat, latlng.lng);
+            appState.map.panTo(latlng);
+            showToast("info", "Location Tagged", "Coordinates captured. Adjust red pin as needed.");
+        }
+        function updateLocationFromCoords(lat, lng) {
+            // Update Lat/Lng HUD
+            document.getElementById("coordinates-display").innerHTML = `Lat: ${lat.toFixed(5)}, Lng: ${lng.toFixed(5)}`;
+            
+            // Mock Location Names depending on area coordinates to make it super realistic
+            let mockLocName = "Central Park Pathways, NY";
+            if (lat > 40.785) {
+                mockLocName = `North Reservoir Loop, near ${lat.toFixed(5)} N`;
+            } else if (lat < 40.775) {
+                mockLocName = `South Playground area, near ${lng.toFixed(5)} W`;
+            } else {
+                mockLocName = `Great Lawn Circle, coordinate offsets: [${lat.toFixed(4)}, ${lng.toFixed(4)}]`;
+            }
+            document.getElementById("location-input").value = mockLocName;
+        }
+        function renderMapMarkers() {
+            // Remove previous report markers
+            Object.values(appState.mapMarkers).forEach(m => appState.map.removeLayer(m));
+            appState.mapMarkers = {};
+            appState.reports.forEach(report => {
+                const color = getMarkerColor(report.status);
+                const marker = L.marker(report.coords, { icon: createCustomPin(color) }).addTo(appState.map);
+                
+                // Popup HTML
+                const popupContent = `
+                    <div class="map-popup">
+                        <img src="${report.image || 'data:image/svg+xml;utf8,<svg xmlns=%22http://www.w3.org/2000/svg%22 width=%22100%22 height=%22100%22><rect width=%22100%25%22 height=%22100%25%22 fill=%22%23ccc%22/></svg>'}" alt="waste site">
+                        <h4>${report.id}</h4>
+                        <p style="margin-bottom:4px;"><strong>${report.category}</strong></p>
+                        <p style="font-size:0.75rem; color:var(--text-muted); margin-bottom:8px;">${report.location}</p>
+                        <div style="display:flex; justify-content:space-between; align-items:center;">
+                            <span class="badge badge-status ${report.status.toLowerCase().replace(' ', '-')}" style="font-size: 0.65rem;">${report.status}</span>
+                            <button onclick="trackReportById('${report.id}')" style="background:var(--primary); color:white; border:none; padding:2px 8px; border-radius:4px; font-size:0.65rem; cursor:pointer; font-weight:700;">Track</button>
+                        </div>
+                    </div>
+                `;
+                marker.bindPopup(popupContent);
+                appState.mapMarkers[report.id] = marker;
+            });
+        }
+        // --- DASHBOARD METRICS ---
+        function updateStatsDashboard() {
+            const reports = appState.reports;
+            const total = reports.length;
+            const resolved = reports.filter(r => r.status === "Resolved").length;
+            const pending = total - resolved;
+            // Animate count-up metrics for WOW factor
+            animateCountValue("stat-total", total);
+            animateCountValue("stat-resolved", resolved);
+            animateCountValue("stat-pending", pending);
+        }
+        function animateCountValue(id, target) {
+            const obj = document.getElementById(id);
+            const start = parseInt(obj.innerHTML) || 0;
+            if (start === target) {
+                obj.textContent = target;
+                return;
+            }
+            const duration = 800; // ms
+            let startTimestamp = null;
+            
+            const step = (timestamp) => {
+                if (!startTimestamp) startTimestamp = timestamp;
+                const progress = Math.min((timestamp - startTimestamp) / duration, 1);
+                obj.textContent = Math.floor(progress * (target - start) + start);
+                if (progress < 1) {
+                    window.requestAnimationFrame(step);
+                } else {
+                    obj.textContent = target;
+                }
+            };
+            window.requestAnimationFrame(step);
+        }
+        // --- FORM HANDLING & IMAGE COMPRESSION ---
+        function initFormHandlers() {
+            const categoryCards = document.querySelectorAll(".category-card");
+            const fileInput = document.getElementById("image-file-input");
+            const dropzone = document.getElementById("image-dropzone");
+            const previewContainer = document.getElementById("image-preview-container");
+            const previewImg = document.getElementById("image-preview-img");
+            const clearImageBtn = document.getElementById("btn-clear-image");
+            const form = document.getElementById("report-form");
+            // Category selecting trigger
+            categoryCards.forEach(card => {
+                card.addEventListener("click", function() {
+                    categoryCards.forEach(c => c.classList.remove("selected"));
+                    this.classList.add("selected");
+                    appState.selectedCategory = this.querySelector("input").value;
+                });
+            });
+            // Uploader click event
+            dropzone.addEventListener("click", () => fileInput.click());
+            // Drag and drop events
+            ["dragenter", "dragover"].forEach(eventName => {
+                dropzone.addEventListener(eventName, (e) => {
+                    e.preventDefault();
+                    dropzone.classList.add("dragover");
+                }, false);
+            });
+            ["dragleave", "drop"].forEach(eventName => {
+                dropzone.addEventListener(eventName, (e) => {
+                    e.preventDefault();
+                    dropzone.classList.remove("dragover");
+                }, false);
+            });
+            dropzone.addEventListener("drop", (e) => {
+                const dt = e.dataTransfer;
+                const files = dt.files;
+                if (files.length > 0) {
+                    processImageFile(files[0]);
+                }
+            });
+            fileInput.addEventListener("change", function() {
+                if (this.files.length > 0) {
+                    processImageFile(this.files[0]);
+                }
+            });
+            clearImageBtn.addEventListener("click", (e) => {
+                e.stopPropagation();
+                appState.uploadedImageBase64 = null;
+                fileInput.value = "";
+                previewContainer.style.display = "none";
+                dropzone.style.display = "flex";
+                showToast("info", "Image Removed", "Upload dropzone restored.");
+            });
+            // Form Submit Trigger
+            form.addEventListener("submit", function(e) {
+                e.preventDefault();
+                submitReportForm();
+            });
+            // GPS Locator simulation / request
+            document.getElementById("btn-gps").addEventListener("click", requestGPSLocation);
+        }
+        function processImageFile(file) {
+            if (!file.type.startsWith("image/")) {
+                showToast("error", "Invalid File Type", "Please upload image formats only (PNG, JPG).");
+                return;
+            }
+            const reader = new FileReader();
+            reader.readAsDataURL(file);
+            reader.onload = function(event) {
+                const img = new Image();
+                img.src = event.target.result;
+                img.onload = function() {
+                    // Compress image via HTML Canvas to avoid LocalStorage limits (~100KB JPEGs)
+                    const canvas = document.createElement("canvas");
+                    const maxDim = 600;
+                    let width = img.width;
+                    let height = img.height;
+                    if (width > height) {
+                        if (width > maxDim) {
+                            height *= maxDim / width;
+                            width = maxDim;
+                        }
+                    } else {
+                        if (height > maxDim) {
+                            width *= maxDim / height;
+                            height = maxDim;
+                        }
+                    }
+                    canvas.width = width;
+                    canvas.height = height;
+                    const ctx = canvas.getContext("2d");
+                    ctx.drawImage(img, 0, 0, width, height);
+                    const compressedBase64 = canvas.toDataURL("image/jpeg", 0.7);
+                    appState.uploadedImageBase64 = compressedBase64;
+                    // Swap display to previews
+                    document.getElementById("image-dropzone").style.display = "none";
+                    const previewContainer = document.getElementById("image-preview-container");
+                    const previewImg = document.getElementById("image-preview-img");
+                    previewImg.src = compressedBase64;
+                    previewContainer.style.display = "block";
+                    showToast("success", "Photo Processed", "Image optimized and preview loaded successfully.");
+                };
+            };
+        }
+        function requestGPSLocation() {
+            const coordsDisplay = document.getElementById("coordinates-display");
+            
+            if (!navigator.geolocation) {
+                simulateGPS("Geolocation API not supported. Simulating location pin...");
+                return;
+            }
+            coordsDisplay.textContent = "Acquiring satellite lock...";
+            
+            navigator.geolocation.getCurrentPosition(
+                (position) => {
+                    const lat = position.coords.latitude;
+                    const lng = position.coords.longitude;
+                    
+                    // Constrain map to reasonable mock viewport simulation coordinates
+                    // (Ensure pins stay near the central park tiles for demonstration visual checks)
+                    // If user is actually in New York, use actual. Else translate to New York grid boundaries:
+                    const insideNY = (lat >= 40.7 && lat <= 40.85 && lng >= -74.05 && lng <= -73.9);
+                    const finalLat = insideNY ? lat : 40.78 + (Math.random() - 0.5) * 0.02;
+                    const finalLng = insideNY ? lng : -73.96 + (Math.random() - 0.5) * 0.02;
+                    
+                    const latlng = L.latLng(finalLat, finalLng);
+                    setTempMarker(latlng);
+                },
+                (error) => {
+                    console.warn("GPS failed, using simulation overlay fallback.", error);
+                    simulateGPS("GPS blocked or unavailable. Placing mock pin nearby...");
+                },
+                { timeout: 8000 }
+            );
+        }
+        function simulateGPS(warningMsg) {
+            showToast("info", "GPS Simulator", warningMsg);
+            // Spawn random coordinates within park bounds
+            const randLat = MOCK_CENTER[0] + (Math.random() - 0.5) * 0.015;
+            const randLng = MOCK_CENTER[1] + (Math.random() - 0.5) * 0.015;
+            setTempMarker(L.latLng(randLat, randLng));
+        }
+        function submitReportForm() {
+            const locVal = document.getElementById("location-input").value.trim();
+            const descVal = document.getElementById("desc-input").value.trim();
+            const submitBtn = document.getElementById("btn-submit-report");
+            
+            // Validation
+            if (!appState.selectedCoords) {
+                showToast("error", "Location Required", "Double-click the interactive map or click 'Find My Location' to tag coordinates.");
+                return;
+            }
+            if (!locVal) {
+                showToast("error", "Address Required", "Please enter a descriptive address location for municipal trucks.");
+                return;
+            }
+            // Spinner display
+            submitBtn.disabled = true;
+            submitBtn.querySelector(".spinner").style.display = "block";
+            submitBtn.querySelector("span").textContent = "Uploading to Municipality...";
+            setTimeout(() => {
+                // Generate automatic ID
+                const randomIdNum = Math.floor(1000 + Math.random() * 9000);
+                const newId = `WST-2026-${randomIdNum}`;
+                
+                // If no image uploaded, generate canvas waste vector mockup automatically!
+                const finalImage = appState.uploadedImageBase64 || generateMockWasteImage(appState.selectedCategory);
+                
+                const now = new Date();
+                const options = { month: 'short', day: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' };
+                const dateString = now.toLocaleDateString('en-US', options);
+                const newReport = {
+                    id: newId,
+                    category: appState.selectedCategory,
+                    description: descVal || `Municipal cleanup requested for ${appState.selectedCategory}. Location needs inspection.`,
+                    location: locVal,
+                    coords: appState.selectedCoords,
+                    image: finalImage,
+                    date: dateString,
+                    status: "Submitted"
+                };
+                // Add to start of database
+                appState.reports.unshift(newReport);
+                saveDatabase();
+                
+                // Remove temporary marker and set permanent marker
+                if (appState.tempMarker) {
+                    appState.map.removeLayer(appState.tempMarker);
+                    appState.tempMarker = null;
+                }
+                
+                renderMapMarkers();
+                renderReportsHistory();
+                
+                // Clear Form UI
+                document.getElementById("report-form").reset();
+                document.getElementById("coordinates-display").innerHTML = "GPS Not Set";
+                document.getElementById("image-preview-container").style.display = "none";
+                document.getElementById("image-dropzone").style.display = "flex";
+                appState.uploadedImageBase64 = null;
+                appState.selectedCoords = null;
+                // Stop loading state
+                submitBtn.disabled = false;
+                submitBtn.querySelector(".spinner").style.display = "none";
+                submitBtn.querySelector("span").textContent = "Submit Municipal Report";
+                // Success Message & auto track
+                showToast("success", "Report Created", `ID ${newId} logged successfully in local registries.`);
+                trackReportById(newId);
+                
+                // Smooth scroll down to tracking widget
+                document.getElementById("tracker-widget").scrollIntoView({ behavior: 'smooth' });
+            }, 1200);
+        }
+        // --- TRACKER WIDGET LOGIC ---
+        function trackReportById(id) {
+            const report = appState.reports.find(r => r.id === id);
+            
+            if (!report) {
+                showToast("error", "Report ID Not Found", `ID ${id} is not recorded in the civic registry.`);
+                return;
+            }
+            // Set tracker field values
+            document.getElementById("search-id-input").value = id;
+            document.getElementById("track-report-id").textContent = report.id;
+            document.getElementById("track-report-date").textContent = `Filed on ${report.date}`;
+            
+            const badge = document.getElementById("track-report-badge");
+            badge.className = `badge badge-status ${report.status.toLowerCase().replace(' ', '-')}`;
+            badge.textContent = report.status;
+            document.getElementById("track-report-img").src = report.image || '';
+            document.getElementById("track-details-category").textContent = report.category;
+            document.getElementById("track-details-address").textContent = report.location;
+            document.getElementById("track-details-desc").textContent = report.description;
+            // Process timeline stages
+            const currentStepIdx = STATUSES.indexOf(report.status);
+            const timelineSteps = document.querySelectorAll(".timeline-step");
+            const progressBar = document.getElementById("tracker-progress-bar");
+            timelineSteps.forEach(step => {
+                const stepIdx = parseInt(step.dataset.step);
+                step.classList.remove("completed", "active");
+                if (stepIdx < currentStepIdx) {
+                    step.classList.add("completed");
+                } else if (stepIdx === currentStepIdx) {
+                    step.classList.add("active");
+                }
+            });
+            // Adjust progress bar percentage
+            let progressPercent = 0;
+            if (currentStepIdx > 0) {
+                progressPercent = (currentStepIdx / (STATUSES.length - 1)) * 100;
+            }
+            
+            // Adjust timeline lines depending on mobile vs desktop layouts
+            const isMobile = window.innerWidth <= 640;
+            if (isMobile) {
+                progressBar.style.width = "4px";
+                progressBar.style.height = `${progressPercent}%`;
+            } else {
+                progressBar.style.height = "4px";
+                progressBar.style.width = `${progressPercent}%`;
+            }
+            // Swap widgets displaying
+            document.getElementById("tracker-empty-state").style.display = "none";
+            document.getElementById("tracker-display").classList.add("active");
+            // Pin map view around tracked point
+            appState.map.setView(report.coords, 16);
+            if (appState.mapMarkers[id]) {
+                appState.mapMarkers[id].openPopup();
+            }
+        }
+        // --- HISTORY GRID VIEW & FILTERING ---
+        function renderReportsHistory() {
+            const grid = document.getElementById("reports-grid");
+            grid.innerHTML = "";
+            const filteredReports = appState.reports.filter(report => {
+                // Category filtering
+                const matchesCategory = appState.activeFilters.category === 'all' || 
+                    report.category === appState.activeFilters.category;
+                // Status filtering
+                let matchesStatus = true;
+                if (appState.activeFilters.status === 'pending') {
+                    matchesStatus = report.status !== 'Resolved';
+                } else if (appState.activeFilters.status === 'resolved') {
+                    matchesStatus = report.status === 'Resolved';
+                }
+                // Query Text search
+                const query = appState.activeFilters.searchQuery.toLowerCase();
+                const matchesQuery = !query || 
+                    report.id.toLowerCase().includes(query) || 
+                    report.location.toLowerCase().includes(query) ||
+                    report.description.toLowerCase().includes(query);
+                return matchesCategory && matchesStatus && matchesQuery;
+            });
+            if (filteredReports.length === 0) {
+                grid.innerHTML = `
+                    <div style="grid-column: 1/-1; text-align: center; padding: 3rem; color: var(--text-muted);">
+                        <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" style="margin-bottom:1rem; opacity:0.6;">
+                            <circle cx="12" cy="12" r="10"></circle>
+                            <line x1="8" y1="12" x2="16" y2="12"></line>
+                        </svg>
+                        <p>No municipal reports match your active filter settings.</p>
+                    </div>
+                `;
+                return;
+            }
+            filteredReports.forEach(report => {
+                const card = document.createElement("div");
+                card.className = "report-card";
+                
+                card.innerHTML = `
+                    <div class="report-card-img-wrapper">
+                        <img src="${report.image}" alt="${report.category}">
+                        <div class="report-card-badges">
+                            <span class="badge badge-category">${report.category}</span>
+                            <span class="badge badge-status ${report.status.toLowerCase().replace(' ', '-')}">${report.status}</span>
+                        </div>
+                    </div>
+                    <div class="report-card-body">
+                        <span class="report-card-id">${report.id}</span>
+                        <p class="report-card-desc">${report.description}</p>
+                        <div class="report-card-loc">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z"></path>
+                                <circle cx="12" cy="10" r="3"></circle>
+                            </svg>
+                            <span>${report.location}</span>
+                        </div>
+                        <div class="report-card-footer">
+                            <span class="report-card-date">${report.date}</span>
+                            <div class="report-card-actions">
+                                <!-- Simulation Progression Dropdown for Admin test testing -->
+                                <select class="simulation-select" onchange="simulateStatusChange('${report.id}', this.value)" aria-label="Simulate case status for testing">
+                                    <option value="" disabled selected>Update Status</option>
+                                    ${STATUSES.map(st => `<option value="${st}" ${report.status === st ? 'disabled style="font-weight:bold; color:var(--primary)"' : ''}>${st}</option>`).join('')}
+                                </select>
+                                <button type="button" class="btn-track" onclick="trackReportById('${report.id}')">Track</button>
+                            </div>
+                        </div>
+                    </div>
+                `;
+                grid.appendChild(card);
+            });
+        }
+        // Simulating cleanup processing pipeline updates locally
+        function simulateStatusChange(id, newStatus) {
+            const report = appState.reports.find(r => r.id === id);
+            if (!report) return;
+            const oldStatus = report.status;
+            report.status = newStatus;
+            saveDatabase();
+            
+            // Re-render map/history grid
+            renderMapMarkers();
+            renderReportsHistory();
+            // If we are currently tracking this item, refresh the tracker UI
+            const activeTrackedId = document.getElementById("track-report-id").textContent;
+            if (activeTrackedId === id) {
+                trackReportById(id);
+            }
+            showToast("info", "Status Updated", `Report ${id} transitioned: ${oldStatus} &rarr; ${newStatus}`);
+        }
+        function initHistoryFilterHandlers() {
+            const filterBtns = document.querySelectorAll(".btn-filter");
+            const historySearch = document.getElementById("history-search-input");
+            filterBtns.forEach(btn => {
+                btn.addEventListener("click", function() {
+                    filterBtns.forEach(b => b.classList.remove("active"));
+                    this.classList.add("active");
+                    const filterType = this.dataset.filter;
+                    if (filterType === 'all' || filterType === 'pending' || filterType === 'resolved') {
+                        appState.activeFilters.status = filterType;
+                        appState.activeFilters.category = 'all'; // Reset categories
+                    } else {
+                        appState.activeFilters.status = 'all'; // Reset status filters
+                        appState.activeFilters.category = filterType;
+                    }
+                    renderReportsHistory();
+                });
+            });
+            historySearch.addEventListener("input", function() {
+                appState.activeFilters.searchQuery = this.value;
+                renderReportsHistory();
+            });
+            // Tracking widget direct search input
+            document.getElementById("btn-track-search").addEventListener("click", () => {
+                const searchVal = document.getElementById("search-id-input").value.trim().toUpperCase();
+                if (searchVal) {
+                    trackReportById(searchVal);
+                } else {
+                    showToast("error", "Empty Search Query", "Please enter a valid Report ID (e.g. WST-2026-XXXX).");
+                }
+            });
+        }
+        // --- THEME SWAPPING (Dark Mode Toggle) ---
+        function initThemeHandler() {
+            const toggleBtn = document.getElementById("theme-toggle");
+            const sunIcon = document.getElementById("theme-icon-sun");
+            const moonIcon = document.getElementById("theme-icon-moon");
+            // Look up LocalStorage settings
+            const savedTheme = localStorage.getItem("ecoclean_theme");
+            if (savedTheme === 'dark') {
+                setTheme('dark');
+            } else {
+                setTheme('light');
+            }
+            toggleBtn.addEventListener("click", () => {
+                const activeTheme = document.documentElement.getAttribute("data-theme");
+                const nextTheme = activeTheme === 'dark' ? 'light' : 'dark';
+                setTheme(nextTheme);
+                showToast("info", "Theme Toggled", `Theme changed to ${nextTheme} mode.`);
+            });
+            function setTheme(theme) {
+                document.documentElement.setAttribute("data-theme", theme);
+                appState.theme = theme;
+                localStorage.setItem("ecoclean_theme", theme);
+                if (theme === 'dark') {
+                    sunIcon.style.display = "block";
+                    moonIcon.style.display = "none";
+                } else {
+                    sunIcon.style.display = "none";
+                    moonIcon.style.display = "block";
+                }
+                // Swap map tile designs if map is loaded
+                if (appState.map) {
+                    setMapTiles();
+                }
+            }
+        }
+        // --- BANNER ROTATION CYCLE ---
+        function initBannerRotation() {
+            const banner = document.getElementById("awareness-banner");
+            const tips = document.querySelectorAll("#banner-tips .banner-tip-item");
+            let activeIdx = 0;
+            let timer = null;
+            function rotateTips() {
+                tips[activeIdx].classList.remove("active");
+                activeIdx = (activeIdx + 1) % tips.length;
+                tips[activeIdx].classList.add("active");
+            }
+            // Rotate tips every 6 seconds
+            timer = setInterval(rotateTips, 6000);
+            // Manual skip on click
+            banner.addEventListener("click", () => {
+                clearInterval(timer);
+                rotateTips();
+                timer = setInterval(rotateTips, 6000); // Reset timer
+            });
+        }
+        // --- TOAST SYSTEMS ---
+        function showToast(type, title, desc) {
+            const wrapper = document.getElementById("toast-wrapper");
+            const toast = document.createElement("div");
+            toast.className = `toast ${type}`;
+            // Set Icons depending on type
+            let iconSvg = '';
+            if (type === 'success') {
+                iconSvg = `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>`;
+            } else if (type === 'error') {
+                iconSvg = `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="8" x2="12" y2="12"></line><line x1="12" y1="16" x2="12.01" y2="16"></svg>`;
+            } else {
+                iconSvg = `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="16" x2="12" y2="12"></line><line x1="12" y1="8" x2="12.01" y2="8"></svg>`;
+            }
+            toast.innerHTML = `
+                <div class="toast-icon">${iconSvg}</div>
+                <div class="toast-content">
+                    <div class="toast-title">${title}</div>
+                    <div class="toast-desc">${desc}</div>
+                </div>
+                <button type="button" class="toast-close" onclick="this.parentElement.remove()" aria-label="Close message">&times;</button>
+            `;
+            wrapper.appendChild(toast);
+            // Auto remove after 4 seconds
+            setTimeout(() => {
+                if (toast.parentElement) {
+                    toast.remove();
+                }
+            }, 4000);
+        }
+        // --- RESIZING MAP ADJUSTMENTS ---
+        window.addEventListener("resize", () => {
+            // Re-adjust tracking lines for active tracker in case responsive viewport wraps
+            const activeTrackedId = document.getElementById("track-report-id").textContent;
+            if (activeTrackedId && document.getElementById("tracker-display").classList.contains("active")) {
+                // Debounced/delayed track refresh to align node locations
+                setTimeout(() => trackReportById(activeTrackedId), 100);
+            }
+        });
+        // --- STARTUP INITIALIZATION ---
+        document.addEventListener("DOMContentLoaded", () => {
+            initializeDatabase();
+            initThemeHandler(); // Load early to adjust map layout correctly
+            initMap();
+            initFormHandlers();
+            initHistoryFilterHandlers();
+            initBannerRotation();
+            renderReportsHistory();
+        });
+    </script>
+</body>
+</html>

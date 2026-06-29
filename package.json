@@ -1,0 +1,18 @@
+{
+  "name": "caresync-medicine-reminder",
+  "version": "1.0.0",
+  "description": "A modern, responsive, glassmorphic medicine reminder application with offline persistence, calendar widget, voice synthesiser alarms, and stock tracking.",
+  "main": "index.html",
+  "scripts": {
+    "dev": "npx -y lite-server"
+  },
+  "keywords": [
+    "medicine",
+    "reminder",
+    "tracker",
+    "offline-first",
+    "speech-synthesis"
+  ],
+  "author": "CareSync Team",
+  "license": "MIT"
+}

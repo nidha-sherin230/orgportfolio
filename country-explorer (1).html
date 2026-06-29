@@ -1,0 +1,520 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Country Info Explorer</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet" />
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg: #f5f4f0;
+      --surface: #ffffff;
+      --surface2: #f0efe9;
+      --border: rgba(0,0,0,0.1);
+      --border2: rgba(0,0,0,0.18);
+      --text: #1a1a18;
+      --text2: #6b6b66;
+      --text3: #9e9e98;
+      --accent: #1a5c3a;
+      --accent-bg: #e8f3ec;
+      --accent-text: #1a5c3a;
+      --danger-bg: #fef0ef;
+      --danger-border: rgba(200,60,50,0.25);
+      --danger-text: #9b2015;
+      --radius: 12px;
+      --radius-sm: 8px;
+    }
+
+    @media (prefers-color-scheme: dark) {
+      :root {
+        --bg: #141412;
+        --surface: #1e1e1b;
+        --surface2: #272724;
+        --border: rgba(255,255,255,0.09);
+        --border2: rgba(255,255,255,0.16);
+        --text: #eeeee8;
+        --text2: #9e9e96;
+        --text3: #6a6a64;
+        --accent: #4caf76;
+        --accent-bg: #152a1e;
+        --accent-text: #4caf76;
+        --danger-bg: #2a1210;
+        --danger-border: rgba(220,80,70,0.25);
+        --danger-text: #e07a72;
+      }
+    }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: 'Inter', system-ui, sans-serif;
+      font-size: 16px;
+      line-height: 1.6;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 2.5rem 1rem 4rem;
+    }
+
+    header {
+      text-align: center;
+      margin-bottom: 2rem;
+    }
+
+    header .globe {
+      font-size: 48px;
+      display: block;
+      margin-bottom: 0.5rem;
+      line-height: 1;
+    }
+
+    header h1 {
+      font-size: 28px;
+      font-weight: 600;
+      letter-spacing: -0.5px;
+      color: var(--text);
+    }
+
+    header p {
+      font-size: 14px;
+      color: var(--text2);
+      margin-top: 4px;
+    }
+
+    .container {
+      width: 100%;
+      max-width: 640px;
+    }
+
+    .search-wrap {
+      display: flex;
+      gap: 8px;
+      margin-bottom: 1.5rem;
+    }
+
+    .search-wrap input {
+      flex: 1;
+      padding: 0 14px;
+      height: 44px;
+      border-radius: var(--radius-sm);
+      border: 1px solid var(--border2);
+      background: var(--surface);
+      color: var(--text);
+      font-family: inherit;
+      font-size: 15px;
+      outline: none;
+      transition: border-color 0.15s, box-shadow 0.15s;
+    }
+
+    .search-wrap input::placeholder { color: var(--text3); }
+
+    .search-wrap input:focus {
+      border-color: var(--accent);
+      box-shadow: 0 0 0 3px rgba(26,92,58,0.12);
+    }
+
+    .search-wrap button {
+      height: 44px;
+      padding: 0 20px;
+      border-radius: var(--radius-sm);
+      border: none;
+      background: var(--accent);
+      color: #fff;
+      font-family: inherit;
+      font-size: 14px;
+      font-weight: 500;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      transition: opacity 0.15s, transform 0.1s;
+      white-space: nowrap;
+    }
+
+    .search-wrap button:hover { opacity: 0.88; }
+    .search-wrap button:active { transform: scale(0.97); }
+    .search-wrap button:disabled { opacity: 0.5; cursor: not-allowed; }
+
+    #state-area { min-height: 200px; }
+
+    /* Skeleton */
+    .skeleton {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 1.5rem;
+      animation: pulse 1.4s ease-in-out infinite;
+    }
+    @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:.45} }
+    .skel-flag { width: 88px; height: 58px; border-radius: 4px; background: var(--surface2); margin-bottom: 1rem; }
+    .skel-line { height: 13px; border-radius: 4px; background: var(--surface2); margin-bottom: 10px; }
+
+    /* Error */
+    .error-box {
+      background: var(--danger-bg);
+      border: 1px solid var(--danger-border);
+      border-radius: var(--radius);
+      padding: 1.1rem 1.4rem;
+      color: var(--danger-text);
+      display: flex;
+      align-items: flex-start;
+      gap: 10px;
+      font-size: 14px;
+      line-height: 1.5;
+    }
+    .error-box .icon { font-size: 20px; flex-shrink: 0; margin-top: 1px; }
+
+    /* Card */
+    .card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      overflow: hidden;
+    }
+
+    .card-hero {
+      display: flex;
+      align-items: flex-start;
+      gap: 1.25rem;
+      padding: 1.5rem;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .flag {
+      width: 90px;
+      height: 60px;
+      object-fit: cover;
+      border-radius: 5px;
+      border: 1px solid var(--border);
+      flex-shrink: 0;
+    }
+
+    .name-block h2 {
+      font-size: 22px;
+      font-weight: 600;
+      color: var(--text);
+      line-height: 1.2;
+      letter-spacing: -0.3px;
+      margin-bottom: 3px;
+    }
+
+    .official {
+      font-size: 12px;
+      color: var(--text2);
+      margin-bottom: 8px;
+    }
+
+    .region-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      font-size: 12px;
+      padding: 3px 10px;
+      border-radius: 99px;
+      background: var(--accent-bg);
+      color: var(--accent-text);
+      font-weight: 500;
+    }
+
+    .stats-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+    }
+
+    .stat {
+      padding: 1rem 1.25rem;
+      border-right: 1px solid var(--border);
+      border-bottom: 1px solid var(--border);
+    }
+
+    .stat:nth-child(even) { border-right: none; }
+
+    .stat-label {
+      font-size: 11px;
+      font-weight: 500;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      color: var(--text3);
+      margin-bottom: 4px;
+    }
+
+    .stat-value {
+      font-size: 15px;
+      font-weight: 500;
+      color: var(--text);
+      line-height: 1.4;
+    }
+
+    .stat-sub {
+      font-size: 12px;
+      color: var(--text2);
+      margin-top: 2px;
+    }
+
+    .borders-row {
+      padding: 1rem 1.25rem;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .borders-row .stat-label { margin-bottom: 6px; }
+
+    .border-tags {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 5px;
+    }
+
+    .btag {
+      font-size: 12px;
+      font-weight: 500;
+      padding: 3px 9px;
+      border-radius: 99px;
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      color: var(--text2);
+    }
+
+    .extras {
+      padding: 1rem 1.25rem;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+    }
+
+    .tag {
+      font-size: 12px;
+      padding: 3px 10px;
+      border-radius: 99px;
+      border: 1px solid var(--border);
+      color: var(--text2);
+      background: var(--surface2);
+    }
+
+    /* Hint */
+    .hint {
+      text-align: center;
+      padding: 3.5rem 1rem;
+      color: var(--text3);
+    }
+
+    .hint .big { font-size: 48px; display: block; margin-bottom: 12px; line-height: 1; }
+    .hint p { font-size: 14px; }
+
+    /* Suggestions */
+    .suggestions {
+      margin-top: 0.75rem;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+      justify-content: center;
+    }
+
+    .suggestion-btn {
+      font-size: 12px;
+      padding: 5px 12px;
+      border-radius: 99px;
+      border: 1px solid var(--border2);
+      background: var(--surface);
+      color: var(--text2);
+      cursor: pointer;
+      font-family: inherit;
+      transition: background 0.15s, color 0.15s;
+    }
+
+    .suggestion-btn:hover { background: var(--surface2); color: var(--text); }
+
+    footer {
+      margin-top: 2.5rem;
+      font-size: 12px;
+      color: var(--text3);
+      text-align: center;
+    }
+
+    footer a { color: var(--text2); text-decoration: underline; text-underline-offset: 2px; }
+
+    @media (max-width: 500px) {
+      header h1 { font-size: 22px; }
+      .card-hero { flex-direction: column; gap: 0.75rem; }
+      .flag { width: 72px; height: 48px; }
+    }
+  </style>
+</head>
+<body>
+
+<header>
+  <span class="globe">🌍</span>
+  <h1>Country Info Explorer</h1>
+  <p>Search any country to explore its facts</p>
+</header>
+
+<div class="container">
+  <div class="search-wrap">
+    <input type="text" id="q" placeholder="e.g. Japan, Brazil, Kenya, Iceland…" autocomplete="off" aria-label="Country name" />
+    <button id="btn" onclick="search()">
+      <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+      Search
+    </button>
+  </div>
+
+  <div id="state-area">
+    <div class="hint">
+      <span class="big">🗺️</span>
+      <p>Enter a country name to see its flag, capital, population, currency, and more.</p>
+      <div class="suggestions">
+        <button class="suggestion-btn" onclick="quickSearch('India')">India</button>
+        <button class="suggestion-btn" onclick="quickSearch('Norway')">Norway</button>
+        <button class="suggestion-btn" onclick="quickSearch('Brazil')">Brazil</button>
+        <button class="suggestion-btn" onclick="quickSearch('Japan')">Japan</button>
+        <button class="suggestion-btn" onclick="quickSearch('Kenya')">Kenya</button>
+        <button class="suggestion-btn" onclick="quickSearch('Iceland')">Iceland</button>
+      </div>
+    </div>
+  </div>
+
+  <footer>
+    Data from <a href="https://restcountries.com" target="_blank" rel="noopener">REST Countries API</a> · Free &amp; open source
+  </footer>
+</div>
+
+<script>
+const input = document.getElementById('q');
+const area  = document.getElementById('state-area');
+const btn   = document.getElementById('btn');
+
+input.addEventListener('keydown', e => { if (e.key === 'Enter') search(); });
+
+function quickSearch(name) {
+  input.value = name;
+  search();
+}
+
+function fmtPop(n) {
+  if (n >= 1e9) return (n / 1e9).toFixed(2) + ' billion';
+  if (n >= 1e6) return (n / 1e6).toFixed(1) + ' million';
+  return n.toLocaleString();
+}
+
+function showSkeleton() {
+  area.innerHTML = `<div class="skeleton">
+    <div class="skel-flag"></div>
+    <div class="skel-line" style="width:52%"></div>
+    <div class="skel-line" style="width:35%"></div>
+    <div class="skel-line" style="width:65%; margin-top:1rem"></div>
+    <div class="skel-line" style="width:48%"></div>
+  </div>`;
+}
+
+function showError(msg) {
+  area.innerHTML = `<div class="error-box">
+    <span class="icon">⚠️</span>
+    <span>${msg}</span>
+  </div>`;
+}
+
+function showResult(d) {
+  const currencies    = d.currencies ? Object.values(d.currencies) : [];
+  const currCodes     = d.currencies ? Object.keys(d.currencies).join(', ') : '—';
+  const currNames     = currencies.map(c => `${c.name}${c.symbol ? ' (' + c.symbol + ')' : ''}`).join(', ');
+  const capitals      = d.capital ? d.capital.join(', ') : '—';
+  const langs         = d.languages ? Object.values(d.languages).join(', ') : '—';
+  const area_km       = d.area ? d.area.toLocaleString() + ' km²' : '—';
+  const tzList        = d.timezones || [];
+  const timezones     = tzList.slice(0, 3).join(', ') + (tzList.length > 3 ? ` +${tzList.length - 3} more` : '');
+  const calling       = d.idd && d.idd.root ? d.idd.root + ((d.idd.suffixes || [])[0] || '') : '—';
+  const driving       = d.car && d.car.side ? d.car.side.charAt(0).toUpperCase() + d.car.side.slice(1) : '—';
+  const flagSrc       = d.flags ? (d.flags.svg || d.flags.png) : '';
+  const flagAlt       = d.flags && d.flags.alt ? d.flags.alt : `Flag of ${d.name.common}`;
+  const borders       = d.borders && d.borders.length ? d.borders : [];
+
+  const bordersHTML = borders.length
+    ? borders.map(b => `<span class="btag">${b}</span>`).join('')
+    : `<span class="btag">None — island or enclave</span>`;
+
+  const extras = [
+    d.unMember    ? '🏛️ UN member' : '',
+    d.landlocked  ? '🏔️ Landlocked' : '🌊 Coastal',
+    d.independent ? '🏳️ Independent' : '',
+    d.startOfWeek ? `📅 Week starts ${d.startOfWeek}` : '',
+    d.gini        ? `📊 Gini ${Object.values(d.gini)[0]}` : '',
+    d.continents  ? d.continents.join(', ') : '',
+  ].filter(Boolean);
+
+  const extrasHTML = extras.map(t => `<span class="tag">${t}</span>`).join('');
+
+  area.innerHTML = `<div class="card">
+    <div class="card-hero">
+      <img class="flag" src="${flagSrc}" alt="${flagAlt}" loading="lazy" />
+      <div class="name-block">
+        <h2>${d.name.common}</h2>
+        <div class="official">${d.name.official}</div>
+        <span class="region-pill">📍 ${d.region}${d.subregion ? ' · ' + d.subregion : ''}</span>
+      </div>
+    </div>
+    <div class="stats-grid">
+      <div class="stat">
+        <div class="stat-label">Capital</div>
+        <div class="stat-value">${capitals}</div>
+      </div>
+      <div class="stat">
+        <div class="stat-label">Population</div>
+        <div class="stat-value">${fmtPop(d.population)}</div>
+      </div>
+      <div class="stat">
+        <div class="stat-label">Currency</div>
+        <div class="stat-value">${currCodes}</div>
+        <div class="stat-sub">${currNames}</div>
+      </div>
+      <div class="stat">
+        <div class="stat-label">Area</div>
+        <div class="stat-value">${area_km}</div>
+      </div>
+      <div class="stat">
+        <div class="stat-label">Languages</div>
+        <div class="stat-value" style="font-size:13px">${langs}</div>
+      </div>
+      <div class="stat">
+        <div class="stat-label">Timezones</div>
+        <div class="stat-value" style="font-size:13px">${timezones || '—'}</div>
+      </div>
+      <div class="stat">
+        <div class="stat-label">Calling code</div>
+        <div class="stat-value">${calling}</div>
+      </div>
+      <div class="stat">
+        <div class="stat-label">Drives on</div>
+        <div class="stat-value">${driving}</div>
+      </div>
+    </div>
+    <div class="borders-row">
+      <div class="stat-label">Bordering countries</div>
+      <div class="border-tags">${bordersHTML}</div>
+    </div>
+    <div class="extras">${extrasHTML}</div>
+  </div>`;
+}
+
+async function search() {
+  const q = input.value.trim();
+  if (!q) { input.focus(); return; }
+  showSkeleton();
+  btn.disabled = true;
+  try {
+    const res = await fetch(`https://restcountries.com/v3.1/name/${encodeURIComponent(q)}?fullText=false`);
+    if (!res.ok) throw new Error('not_found');
+    const data = await res.json();
+    if (!data || !data.length) throw new Error('not_found');
+    showResult(data[0]);
+  } catch (e) {
+    showError(`No country found for "<strong>${input.value.trim()}</strong>". Check the spelling and try again.`);
+  } finally {
+    btn.disabled = false;
+  }
+}
+</script>
+</body>
+</html>
